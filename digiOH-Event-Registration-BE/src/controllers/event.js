@@ -8,7 +8,7 @@ exports.getEventById = async (req, res) => {
     try {
         const { id } = req.params;
         const event = await Event.findByPk(id);
-        
+
         if (!event) {
             return res.status(404).json({ message: 'Event not found' });
         }
@@ -50,7 +50,7 @@ exports.getEventById = async (req, res) => {
             to_be_confirmed: statsData['to be confirmed'], // snake_case
             cancelled: statsData.cancelled,
             represented: statsData.represented,
-            
+
             // Format 2: Di dalam objek stats (seperti yang terlihat di network preview Anda)
             stats: {
                 invitation: totalInvitation,
@@ -81,8 +81,14 @@ exports.getAllEvents = async (req, res) => {
 
 exports.createEvent = async (req, res) => {
     try {
-        const { name, start_date, end_date, sales, account_manager, company } = req.body;
-        const newEvent = await Event.create({ name, start_date, end_date, sales, account_manager, company });
+        const {
+            name, start_date, end_date, sales, account_manager, company,
+            event_time, location, discord_channel, drive_folder, loading_date
+        } = req.body;
+        const newEvent = await Event.create({
+            name, start_date, end_date, sales, account_manager, company,
+            event_time, location, discord_channel, drive_folder, loading_date
+        });
         res.status(201).json(newEvent);
     } catch (error) {
         res.status(500).json({ message: error.message });

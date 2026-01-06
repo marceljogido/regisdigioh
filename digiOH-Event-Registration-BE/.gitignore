@@ -2,10 +2,11 @@
 node_modules/
 
 # Build output
-build/
 dist/
+build/
 
 # Logs
+logs/
 *.log
 npm-debug.log*
 

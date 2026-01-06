@@ -19,7 +19,12 @@ const useEventApi = () => {
   }
 
   const updateEvent = async (eventId: string, eventData: any) => {
-    const response = await axiosClient.patch(`/events/${eventId}`, eventData);
+    const response = await axiosClient.patch(`/event-update/${eventId}`, eventData);
+    return response.data;
+  };
+
+  const deleteEvent = async (eventId: string) => {
+    const response = await axiosClient.delete(`/event-delete/${eventId}`);
     return response.data;
   };
 
@@ -40,7 +45,8 @@ const useEventApi = () => {
     return response.data;
   };
 
-  return { createEvent, getEvents, getLoadedEvent, updateEvent, changeLastUpdate, importEvent };
+  return { createEvent, getEvents, getLoadedEvent, updateEvent, deleteEvent, changeLastUpdate, importEvent };
 };
 
 export default useEventApi;
+

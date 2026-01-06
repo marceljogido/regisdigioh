@@ -1,11 +1,17 @@
 const jwt = require('jsonwebtoken');
 
 // JWT Token (Remember to use this everytime we add a new feature)
-function verifyToken(req, res, next){
-    const token = req.headers.authorization.split(' ')[1];
+function verifyToken(req, res, next) {
+    const authHeader = req.headers.authorization;
 
-    if(!token) {
-        return res.status(403).json({message: 'Token is required'});
+    if (!authHeader) {
+        return res.status(403).json({ message: 'Authorization header is required' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(403).json({ message: 'Token is required' });
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
@@ -15,9 +21,10 @@ function verifyToken(req, res, next){
 
         req.user = decoded;
         next();
-      });
+    });
 }
 
 module.exports = {
     verifyToken,
 };
+

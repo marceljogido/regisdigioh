@@ -34,11 +34,4 @@ db.Attribute.belongsTo(db.Event, { foreignKey: 'event_id', onDelete: 'CASCADE' }
 db.Guest.hasMany(db.Attribute, { foreignKey: 'guest_id' });
 db.Event.hasMany(db.Attribute, { foreignKey: 'event_id' });
 
-db.sequelize.sync({ alter: false }) // Ubah sementara ke false agar tidak error syntax
-.then(() => {
-    console.log('Database Connected Successfully!');
-})
-.catch(err => {
-    console.error('Sync Error: ', err.message);
-});
 module.exports = db

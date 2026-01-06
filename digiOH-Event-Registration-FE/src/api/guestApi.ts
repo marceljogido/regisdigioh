@@ -47,7 +47,7 @@ const useGuestApi = () => {
     };
 
     const updateGuestConfirmation = async (confirmationStatus: string, guestId: string) => {
-        const response = await axiosClient.patch(`/confirm/${guestId}`, { confirmation: confirmationStatus });
+        const response = await axiosClient.patch(`/confirmation/${guestId}`, { confirmation: confirmationStatus });
         return response.data;
     };
 
@@ -99,7 +99,7 @@ const useGuestApi = () => {
     const importGuest = async (formData: FormData) => {
         console.log(formData)
         const response = await axiosClient.post(
-            '/add-guest-import',
+            '/import-guests',
             formData,
             {
                 headers: {
@@ -112,7 +112,7 @@ const useGuestApi = () => {
 
     // Utils
     const exportGuestsToExcel = async (allGuests: Guest[]) => {
-        const response = await axiosClient.post('/export', allGuests, { responseType: 'blob', });
+        const response = await axiosClient.post('/export-excel', allGuests, { responseType: 'text' });
         return response.data;
     }
 

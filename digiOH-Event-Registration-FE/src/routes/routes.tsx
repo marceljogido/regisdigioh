@@ -3,8 +3,8 @@ import Layout from "../layout/layout";
 import Login from "../pages/Login";
 import EventData from "../pages/EventData";
 import Dashboard from "../pages/Dashboard";
-import EventInformation from "../pages/EventInformation";
 import ScanQR from "../pages/ScanQR";
+import CreateEvent from "../pages/CreateEvent";
 
 const routeList = createBrowserRouter([
     {
@@ -17,10 +17,10 @@ const routeList = createBrowserRouter([
         children: [
             { path: "/", element: <Dashboard /> },
             { path: "dashboard", element: <Dashboard /> },
-            { path: "data", element: <EventData />},
-            { path: "information", element: <EventInformation />},
-            { path: "scan", element: <ScanQR />},
-            // { path: "loading", element: <LoadingPage />}
+            { path: "create", element: <CreateEvent /> },
+            { path: "data", element: <EventData /> },
+            { path: "event/:id", element: <EventData /> },
+            { path: "scan", element: <ScanQR /> },
         ],
     }
 ]);

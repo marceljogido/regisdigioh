@@ -1,4 +1,4 @@
-import { HomeIcon, DocumentChartBarIcon, DocumentTextIcon, ArrowLeftStartOnRectangleIcon, Bars3Icon, XMarkIcon, QrCodeIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, PlusCircleIcon, ArrowLeftStartOnRectangleIcon, Bars3Icon, XMarkIcon, QrCodeIcon, DocumentChartBarIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -26,8 +26,8 @@ const Sidebar = () => {
         setIsOpen(false);
     };
 
-    const handleEventInformationClick = () => {
-        navigate('/information');
+    const handleCreateEventClick = () => {
+        navigate('/create');
         setIsOpen(false);
     };
 
@@ -41,7 +41,9 @@ const Sidebar = () => {
     };
 
     const getNavItemClassName = (path: string) => {
-        return location.pathname === path ? 'bg-[#A2E3FF] text-white' : 'hover:bg-[#A2E3FF]';
+        return location.pathname === path || location.pathname.startsWith('/event/') && path === '/data'
+            ? 'bg-[#A2E3FF] text-white'
+            : 'hover:bg-[#A2E3FF]';
     };
 
     return (
@@ -73,9 +75,9 @@ const Sidebar = () => {
                         <DocumentChartBarIcon className="h-6 w-6 mr-2" />
                         Event Data
                     </li>
-                    <li className={`cursor-pointer p-2 text-lg rounded flex items-center ${getNavItemClassName('/information')}`} onClick={handleEventInformationClick}>
-                        <DocumentTextIcon className="h-6 w-6 mr-2" />
-                        Event Information
+                    <li className={`cursor-pointer p-2 text-lg rounded flex items-center ${getNavItemClassName('/create')}`} onClick={handleCreateEventClick}>
+                        <PlusCircleIcon className="h-6 w-6 mr-2" />
+                        Create Event
                     </li>
                     <li className={`cursor-pointer p-2 text-lg rounded flex items-center ${getNavItemClassName('/scan')}`} onClick={handleScanQRCodeClick}>
                         <QrCodeIcon className="h-6 w-6 mr-2" />
@@ -102,3 +104,4 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+

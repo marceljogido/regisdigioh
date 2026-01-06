@@ -51,6 +51,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true,
         },
+        unique_code: {
+            type: DataTypes.STRING(8),
+            allowNull: true,
+            unique: true,
+        },
         event_id: {
             type: DataTypes.INTEGER,
             allowNull: true,
