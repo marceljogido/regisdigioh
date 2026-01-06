@@ -25,12 +25,12 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
         },
     }, {
-        table_name: 'attributes',
+        tableName: 'attributes',
         indexes: [
             {
-              unique: true,
-              fields: ['event_id', 'guest_id', 'attribute_key'],
-              name: 'unique_event_guest_key'
+                unique: true,
+                fields: ['event_id', 'guest_id', 'attribute_key'],
+                name: 'unique_event_guest_key'
             }
         ]
     });

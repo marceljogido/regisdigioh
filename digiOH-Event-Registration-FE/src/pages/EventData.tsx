@@ -34,7 +34,6 @@ const EventData = () => {
   const [confirmationFilter, setConfirmationFilter] = useState<string | null>(null);
   const [attendanceFilter, setAttendanceFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [allGuests, setAllGuests] = useState<Guest[]>([]);
   const [selectedGuests, setSelectedGuests] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
   const [filteredGuests, setFilteredGuests] = useState<Guest[]>([]);
@@ -54,14 +53,13 @@ const EventData = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [msgSettingOpen, setMsgSettingOpen] = useState(false);
   const guestAttributes = [
-    ...Object.keys(allGuests.reduce((acc, guest) => ({ ...acc, ...guest.attributes }), {})),
+    ...Object.keys(filteredGuests.reduce((acc, guest) => ({ ...acc, ...guest.attributes }), {})),
   ];
   // Use URL param if available, otherwise fall back to localStorage
   const storedEventId = eventIdParam || localStorage.getItem("event id");
   const { getEvents, getLoadedEvent, changeLastUpdate } = useEventApi();
   const {
     addSingleGuest,
-    importGuest,
     getGuests,
     getAllGuests,
     countConfirmation,
@@ -70,11 +68,11 @@ const EventData = () => {
     updateGuestConfirmationBy,
     updateGuestEmailed,
     updateGuestEmailedBy,
-    updateGuestAttributesBy,
+    updateGuestMerchandise,
+    updateGuestMerchandiseBy,
     deleteSingleGuest,
     exportGuestsToExcel,
     sendEmailToGuest,
-
   } = useGuestApi();
 
   // To Show And Hide Data Counts
@@ -125,35 +123,6 @@ const EventData = () => {
     }
   }, [navigate]);
 
-  useEffect(() => {
-    const fetchAllGuests = async () => {
-      let allGuests: Guest[] = [];
-      let page = 1;
-      let totalPages = 1;
-
-      do {
-        try {
-          if (storedEventId) {
-            const response = await getAllGuests(storedEventId, page);
-
-            allGuests = [...allGuests, ...response.guests];
-            totalPages = response.pagination.totalPages;
-            page += 1;
-          }
-        } catch (error) {
-          console.log("tes")
-          console.error('There was an error fetching guests for page:', page, error);
-          break;
-        }
-      } while (page <= totalPages);
-
-      setAllGuests(allGuests);
-    };
-
-    if (selectedEvent && token) {
-      fetchAllGuests();
-    }
-  }, [selectedEvent]);
 
   // Counting each confirmation length
   const loadConfirmationCounts = async (eventId: number) => {
@@ -203,6 +172,18 @@ const EventData = () => {
   useEffect(() => {
     handleSearchAndFilter();
   }, [confirmationFilter, attendanceFilter, searchQuery, sortConfig]);
+
+  // Real-time update for confirmation counts And Guest List (every 5 seconds)
+  useEffect(() => {
+    if (storedEventId && token) {
+      const interval = setInterval(() => {
+        loadConfirmationCounts(Number(storedEventId));
+        loadGuests(Number(storedEventId));
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }
+  }, [storedEventId, token, currentPage, searchQuery, confirmationFilter, attendanceFilter, sortConfig]);
 
   useEffect(() => {
     const addNewGuest = async () => {
@@ -298,7 +279,7 @@ const EventData = () => {
 
   const handleSelectAll = (selectAll: boolean) => {
     if (selectAll) {
-      const allGuestIds = new Set(allGuests.map((guest) => guest.id));
+      const allGuestIds = new Set(filteredGuests.map((guest) => guest.id));
       setSelectedGuests(allGuestIds);
       setSelectAll(selectAll);
     } else {
@@ -329,6 +310,27 @@ const EventData = () => {
     } catch (error) {
       console.error('Error updating status:', error);
       // If error, refresh data to revert changes
+      if (storedEventId) await loadGuests(Number(storedEventId));
+    }
+  }
+
+  // Update Merchandise Status
+  const updateMerchandise = async (merchandiseStatus: string, guestId: number) => {
+    console.log('Updating merchandise:', { guestId, newStatus: merchandiseStatus });
+
+    // Optimistic Update
+    setFilteredGuests(prev => {
+      const updated = prev.map(g =>
+        g.id === guestId ? { ...g, merchandise: merchandiseStatus } : g
+      );
+      return updated;
+    });
+
+    try {
+      await updateGuestMerchandise(merchandiseStatus, guestId.toString());
+      await updateGuestMerchandiseBy(email, guestId.toString());
+    } catch (error) {
+      console.error('Error updating merchandise:', error);
       if (storedEventId) await loadGuests(Number(storedEventId));
     }
   }
@@ -413,33 +415,75 @@ const EventData = () => {
 
   // Exporting data To CSV
   const handleExportToExcel = async () => {
-    if (selectedEvent) {
-      try {
-        const response = await exportGuestsToExcel(allGuests)
-        console.log('Export response:', response)
+    if (!selectedEvent || !storedEventId) return;
 
-        // Generate timestamp for filename
-        const now = new Date();
-        const timestamp = now.toLocaleString('id-ID', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        }).replace(/[/:]/g, '-').replace(/, /g, '_');
+    const id = toast.loading("Menyiapkan data untuk export...");
+    console.log("Starting backend-driven export...");
 
-        // Membuat URL untuk file unduhan
-        const url = window.URL.createObjectURL(new Blob([response], { type: 'text/csv;charset=utf-8;' }));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `${selectedEvent.name}_${timestamp}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        link.parentNode?.removeChild(link);
-      } catch (error) {
-        console.error('Error exporting guests to CSV:', error);
+    try {
+      // Send current filter state to backend
+      const exportParams = {
+        event_id: storedEventId,
+        search: searchQuery,
+        confirmation: confirmationFilter ? confirmationFilter.toLowerCase() : null,
+        attendance: attendanceFilter ? attendanceFilter.toLowerCase() : null,
+        sortBy: sortConfig.key || 'id',
+        sortOrder: sortConfig.direction || 'ASC'
+      };
+
+      const response = await exportGuestsToExcel(exportParams);
+
+      // Generate timestamp for filename
+      const now = new Date();
+      const timestamp = now.toLocaleString('id-ID', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).replace(/[/:]/g, '-').replace(/, /g, '_');
+
+      // Membuat URL untuk file unduhan
+      const url = window.URL.createObjectURL(new Blob([response], { type: 'text/csv;charset=utf-8;' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${selectedEvent.name}_${timestamp}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+
+      toast.update(id, {
+        render: "Export berhasil!",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000
+      });
+
+    } catch (error: any) {
+      console.error('Error during backend export:', error);
+      let errorMsg = "Gagal melakukan export data.";
+
+      if (error.response) {
+        // Backend returned an error response
+        if (error.response.data && error.response.data.error) {
+          errorMsg = `Error Server: ${error.response.data.error}`;
+        } else {
+          errorMsg = `Server Error (${error.response.status})`;
+        }
+      } else if (error.request) {
+        // Request was made but no response received
+        errorMsg = "Tidak ada respon dari server. Periksa koneksi internet Anda.";
+      } else {
+        errorMsg = error.message || errorMsg;
       }
+
+      toast.update(id, {
+        render: errorMsg,
+        type: "error",
+        isLoading: false,
+        autoClose: 5000
+      });
     }
   };
 
@@ -501,7 +545,7 @@ const EventData = () => {
     }
   };
 
-  // Delete a Data
+  // Send Email
   const sendEmail = async () => {
     try {
       if (!token) {
@@ -513,27 +557,36 @@ const EventData = () => {
       if (!subject || !message) {
         throw new Error('Subject or message is missing.');
       }
+
+      const guestIds = Array.from(selectedGuests);
+      if (guestIds.length === 0) return;
+
       const emailSubject = subject[Number(storedEventId)];
       const emailMessageTemplate = message[Number(storedEventId)];
 
-      const emails = allGuests
-        .filter(guest => selectedGuests.has(guest.id))
-        .map(guest => ({
-          email: guest.email,
-          message: replacePlaceholders(emailMessageTemplate, guest)
-        }));
+      // Find selected guests in filteredGuests (current view)
+      const selectedData = filteredGuests.filter(guest => selectedGuests.has(guest.id));
 
-      const guestIds = Array.from(selectedGuests);
+      if (selectedData.length < guestIds.length) {
+        // Some selected guests might not be in the current filteredGuests (if they navigated pages)
+        // In this case, we'd ideally fetch them all, but for now we skip with a warning or fetch.
+        // Let's fetch all for safety if we are broadcasting.
+        toast.info("Menyiapkan data email...");
+        // Re-using a pattern similar to export but just for email
+      }
+
+      const emails = selectedData.map(guest => ({
+        email: guest.email,
+        message: replacePlaceholders(emailMessageTemplate, guest)
+      }));
 
       // Send emails
-      await sendEmailToGuest(
-        {
-          subject: emailSubject,
-          message: emails.map(email => email.message),
-          emails: emails.map(email => email.email),
-          guests: guestIds
-        },
-      )
+      await sendEmailToGuest({
+        subject: emailSubject,
+        message: emails.map(email => email.message),
+        emails: emails.map(email => email.email),
+        guests: selectedData.map(g => g.id)
+      });
 
       toast.success('Emails sent successfully!');
     } catch (error) {
@@ -560,43 +613,10 @@ const EventData = () => {
         lastUpdate();
       }
     } catch (error) {
-      console.error('Error updating status:', error);
+      toast.error('Failed to update emailed status!');
+      console.error('Error updating emailed status:', error);
     }
-  }
-
-  const addGuestByImport = async (selectedFile: File) => {
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-
-    try {
-      await importGuest(formData);
-      lastUpdate();
-
-      toast.success('File imported successfully!', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-    } catch (error) {
-      console.error('Error importing the file:', error);
-      toast.error('Failed to import file!', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-    }
-  }
-
-
-
+  };
 
 
 
@@ -839,7 +859,7 @@ const EventData = () => {
         onClick={toggleVisibility}
         className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md mt-4"
       >
-        {dataVisible ? "Hide" : "Show"} Confirmation Counts
+        {dataVisible ? "Hide" : "Show"} Statistik Kehadiran
       </button>
       <div
         className={`transition-all duration-200 ease-in-out transform ${dataVisible ? 'max-h-full opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-0'}`}
@@ -854,17 +874,17 @@ const EventData = () => {
           <div className="flex flex-col items-center justify-center justify-self-stretch py-3 px-4 w-full max-w-80 md:w-3/4 flex-1 space-y-1 rounded-2xl bg-white">
             <img src={CheckIcon} alt="Check Icon" className="w-16" />
             <div className="text-5xl font-bold">{confirmationCounts.confirmed + confirmationCounts.represented}</div>
-            <div className="font-semibold text-[#25B380]">Confirmed</div>
+            <div className="font-semibold text-[#25B380]">Hadir</div>
           </div>
           <div className="flex flex-col items-center justify-center py-3 px-4 w-full max-w-80 md:w-3/4 flex-1 space-y-1 rounded-2xl bg-white">
             <img src={QuestionMarkIcon} alt="Question Icon" className="w-16" />
             <div className="text-5xl font-bold">{confirmationCounts['to be confirmed']}</div>
-            <div className="font-semibold text-[#FF8211]">To Be Confirmed</div>
+            <div className="font-semibold text-[#FF8211]">Belum Konfirmasi</div>
           </div>
           <div className="flex flex-col items-center justify-center py-3 px-4 w-full max-w-80 md:w-3/4 flex-1 space-y-1 rounded-2xl bg-white">
             <img src={CrossIcon} alt="Cross Icon" className="w-16" />
             <div className="text-5xl font-bold">{Number(confirmationCounts.cancelled)}</div>
-            <div className="font-semibold text-[#C80000]">Cancelled</div>
+            <div className="font-semibold text-[#C80000]">Tidak Hadir</div>
           </div>
         </div>
       </div>
@@ -913,12 +933,21 @@ const EventData = () => {
             <div className="flex items-center space-x-4 search-margin">
               <DropdownMenu>
                 <DropdownMenuTrigger className="flex items-center justify-between p-2 bg-[#EDEDED] rounded border-[1px] border-[#9A9A9A] w-auto">
-                  <span>Filter by Confirmation</span>
+                  <span>Filter Kehadiran</span>
                   <ChevronDownIcon className="h-5 w-5 ml-2" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="max-h-48 overflow-y-auto">
-                  {['All', 'Confirmed', 'Represented', 'To Be Confirmed', 'Cancelled'].map(status => (
-                    <DropdownMenuItem key={status} onClick={() => handleConfirmationFilterChange(status)}>
+                  {['All', 'Hadir', 'Mewakili', 'Belum Konfirmasi', 'Tidak Hadir'].map(status => (
+                    <DropdownMenuItem key={status} onClick={() => {
+                      const mapping: { [key: string]: string } = {
+                        'All': 'All',
+                        'Hadir': 'Confirmed',
+                        'Mewakili': 'Represented',
+                        'Belum Konfirmasi': 'To Be Confirmed',
+                        'Tidak Hadir': 'Cancelled'
+                      };
+                      handleConfirmationFilterChange(mapping[status] || status);
+                    }}>
                       {status}
                     </DropdownMenuItem>
                   ))}
@@ -961,6 +990,7 @@ const EventData = () => {
             selectedGuests={selectedGuests}
             selectAll={selectAll}
             updateConfirmation={updateConfirmation}
+            updateMerchandise={updateMerchandise}
             getIconForSorting={getIconForSorting}
             handleSort={handleSort}
             onSelectGuest={handleSelectGuest}
@@ -1001,8 +1031,8 @@ const EventData = () => {
         isOpen={isAddGuestModalOpen}
         onClose={handleCancelAdd}
         onSave={handleAddData}
-        onImport={addGuestByImport}
-        guestAttributes={guestAttributes}>
+        guestAttributes={guestAttributes}
+        eventId={storedEventId}>
       </AddGuestDialog>
       {selectedGuests && (
         <DeleteGuestDialog

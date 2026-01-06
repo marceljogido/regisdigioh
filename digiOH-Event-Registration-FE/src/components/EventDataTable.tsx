@@ -3,6 +3,7 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
 import { useNavigate } from "react-router-dom";
 import { PencilSquareIcon, InformationCircleIcon } from "@heroicons/react/24/outline";
 import UpdateConfirmationDialog from "./UpdateConfirmationDialog";
+import UpdateMerchandiseDialog from "./UpdateMerchandiseDialog";
 import InfoBox from "./InfoBox";
 import { toast } from 'react-toastify';
 
@@ -15,6 +16,8 @@ interface Guest {
     attendance: string;
     emailed: boolean;
     instansi: string;
+    merchandise: string;
+    merchandise_updated_by?: string;
     qrCode?: string; // TAMBAHAN: Properti untuk menampung data gambar QR
     attributes?: { [key: string]: string };
     confirmation_updated_by?: string;
@@ -26,6 +29,7 @@ interface Guest {
 interface Props {
     guests: Guest[];
     updateConfirmation: (selectedConfirmationStatus: string, guestId: number) => void;
+    updateMerchandise: (selectedMerchandiseStatus: string, guestId: number) => void;
     getIconForSorting: (key: string) => React.ReactNode;
     handleSort: (key: string) => void;
     selectedGuests: Set<number>;
@@ -37,6 +41,7 @@ interface Props {
 const EventDataTable: React.FC<Props> = ({
     guests,
     updateConfirmation,
+    updateMerchandise,
     getIconForSorting,
     handleSort,
     selectedGuests,
@@ -46,6 +51,7 @@ const EventDataTable: React.FC<Props> = ({
 }) => {
     const navigate = useNavigate();
     const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false);
+    const [merchandiseDialogOpen, setMerchandiseDialogOpen] = useState(false);
     const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
 
     const [infoBoxVisible, setInfoBoxVisible] = useState(false);
@@ -63,12 +69,12 @@ const EventDataTable: React.FC<Props> = ({
     }, []);
 
     const capitalizeFirstLetter = (word: string) => {
-        if (word.toLowerCase() === 'confirmed') return 'Confirmed';
-        if (word.toLowerCase() === 'to be confirmed') return 'To Be Confirmed';
-        if (word.toLowerCase() === 'represented') return 'Represented';
-        if (word.toLowerCase() === 'cancelled') return 'Cancelled';
-        if (word.toLowerCase() === 'attended') return 'Attended';
-        if (word.toLowerCase() === 'did not attend') return 'Did Not Attend';
+        if (word.toLowerCase() === 'confirmed') return 'Hadir';
+        if (word.toLowerCase() === 'to be confirmed') return 'Belum Konfirmasi';
+        if (word.toLowerCase() === 'represented') return 'Mewakili';
+        if (word.toLowerCase() === 'cancelled') return 'Tidak Hadir';
+        if (word.toLowerCase() === 'attended') return 'Hadir'; // Backup mapping
+        if (word.toLowerCase() === 'did not attend') return 'Tidak Hadir'; // Backup mapping
         return word;
     };
 
@@ -82,6 +88,14 @@ const EventDataTable: React.FC<Props> = ({
         }
     };
 
+    const getMerchandiseColor = (status: string) => {
+        return status === 'received' ? '#25B380' : '#C80000';
+    };
+
+    const formatMerchandise = (status: string) => {
+        return status === 'received' ? 'Sudah Terima' : 'Belum Terima';
+    };
+
     const handleConfirmationClick = (guest: Guest) => {
         setSelectedGuest(guest);
         setConfirmationDialogOpen(true);
@@ -89,6 +103,16 @@ const EventDataTable: React.FC<Props> = ({
 
     const handleConfirmationDialogClose = () => {
         setConfirmationDialogOpen(false);
+        setSelectedGuest(null);
+    };
+
+    const handleMerchandiseClick = (guest: Guest) => {
+        setSelectedGuest(guest);
+        setMerchandiseDialogOpen(true);
+    };
+
+    const handleMerchandiseDialogClose = () => {
+        setMerchandiseDialogOpen(false);
         setSelectedGuest(null);
     };
 
@@ -117,6 +141,17 @@ const EventDataTable: React.FC<Props> = ({
         }
     };
 
+    const handleMerchandiseUpdate = async (newStatus: string) => {
+        if (selectedGuest) {
+            try {
+                await updateMerchandise(newStatus, selectedGuest.id);
+                toast.success('Merchandise status updated successfully!');
+            } catch (error) {
+                toast.error('Failed to update merchandise status!');
+            }
+        }
+    };
+
 
 
     return (
@@ -134,8 +169,8 @@ const EventDataTable: React.FC<Props> = ({
                             />
                         </TableHead>
                         <TableHead className="text-center text-black w-[50px]">No</TableHead>
-                        <TableHead className="w-[150px] text-center text-black cursor-pointer hover:underline">
-                            <div className="flex items-center justify-center" onClick={() => handleSort('username')}>
+                        <TableHead className="w-[150px] text-left text-black cursor-pointer hover:underline">
+                            <div className="flex items-center justify-start" onClick={() => handleSort('username')}>
                                 {getIconForSorting('username')}
                                 <div>Nama</div>
                             </div>
@@ -146,7 +181,8 @@ const EventDataTable: React.FC<Props> = ({
                         <TableHead className="text-center text-black">Keterangan</TableHead>
                         <TableHead className="text-center text-black">CP</TableHead>
                         <TableHead className="text-center text-black">No HP CP</TableHead>
-                        <TableHead className="text-center text-black">Konfirmasi</TableHead>
+                        <TableHead className="text-center text-black">Kehadiran</TableHead>
+                        <TableHead className="text-center text-black">Merchandise</TableHead>
                         <TableHead className="text-center text-black">Jumlah Orang</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -165,8 +201,8 @@ const EventDataTable: React.FC<Props> = ({
                                 <TableCell className="text-center font-medium">
                                     {index + 1}
                                 </TableCell>
-                                <TableCell className="font-medium text-center">
-                                    <div className="flex items-center justify-center">
+                                <TableCell className="font-medium text-left">
+                                    <div className="flex items-center justify-start">
                                         <InformationCircleIcon onClick={(e) => handleInfoIconClick(e, guest)} className="h-5 w-5 text-gray-500 mr-2 cursor-pointer" />
                                         {guest.username}
                                     </div>
@@ -205,6 +241,12 @@ const EventDataTable: React.FC<Props> = ({
                                         {capitalizeFirstLetter(guest.confirmation)}
                                     </div>
                                 </TableCell>
+                                <TableCell className="text-center font-bold" style={{ color: getMerchandiseColor(guest.merchandise) }}>
+                                    <div className="flex items-center justify-center">
+                                        <PencilSquareIcon className="h-5 w-5 text-gray-500 mr-2 cursor-pointer" onClick={() => handleMerchandiseClick(guest)} />
+                                        {formatMerchandise(guest.merchandise)}
+                                    </div>
+                                </TableCell>
                                 <TableCell className="text-center">
                                     {guest.attributes ? (guest.attributes['Jumlah Orang'] || guest.attributes['jumlah orang'] || '-') : '-'}
                                 </TableCell>
@@ -212,7 +254,7 @@ const EventDataTable: React.FC<Props> = ({
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={11} className="text-center text-2xl text-red-600">No data available. Select Event!</TableCell>
+                            <TableCell colSpan={12} className="text-center text-2xl text-red-600">No data available. Select Event!</TableCell>
                         </TableRow>
                     )}
                 </TableBody>
@@ -221,6 +263,11 @@ const EventDataTable: React.FC<Props> = ({
             {
                 selectedGuest && (
                     <UpdateConfirmationDialog open={confirmationDialogOpen} onClose={handleConfirmationDialogClose} currentStatus={selectedGuest.confirmation} onUpdate={handleConfirmationUpdate} />
+                )
+            }
+            {
+                selectedGuest && (
+                    <UpdateMerchandiseDialog open={merchandiseDialogOpen} onClose={handleMerchandiseDialogClose} currentStatus={selectedGuest.merchandise} onUpdate={handleMerchandiseUpdate} />
                 )
             }
             {

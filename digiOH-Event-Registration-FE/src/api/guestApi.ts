@@ -76,6 +76,16 @@ const useGuestApi = () => {
         return response.data;
     };
 
+    const updateGuestMerchandise = async (merchandise: string, id: string) => {
+        const response = await axiosClient.patch(`/merchandise/${id}`, { merchandise });
+        return response.data;
+    };
+
+    const updateGuestMerchandiseBy = async (email: string, id: string) => {
+        const response = await axiosClient.patch(`/merchandise-by/${id}`, { merchandise_updated_by: email });
+        return response.data;
+    };
+
     // Delete
     const deleteSingleGuest = async (guestId: string) => {
         const response = await axiosClient.delete(`/guest/${guestId}`);
@@ -111,8 +121,8 @@ const useGuestApi = () => {
     };
 
     // Utils
-    const exportGuestsToExcel = async (allGuests: Guest[]) => {
-        const response = await axiosClient.post('/export-excel', allGuests, { responseType: 'text' });
+    const exportGuestsToExcel = async (exportData: any) => {
+        const response = await axiosClient.post('/export-excel', exportData, { responseType: 'text' });
         return response.data;
     }
 
@@ -138,6 +148,8 @@ const useGuestApi = () => {
         updateGuestEmailedBy,
         updateGuestAttributes,
         updateGuestAttributesBy,
+        updateGuestMerchandise,
+        updateGuestMerchandiseBy,
         deleteSingleGuest,
         exportGuestsToExcel,
         sendEmailToGuest,
@@ -146,4 +158,3 @@ const useGuestApi = () => {
 }
 
 export default useGuestApi;
-

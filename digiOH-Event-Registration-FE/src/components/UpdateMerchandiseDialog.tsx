@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Dialog, DialogActions, DialogContent, DialogTitle, Button, MenuItem, Select, SelectChangeEvent } from '@mui/material';
 
-interface UpdateConfirmationDialogProps {
+interface UpdateMerchandiseDialogProps {
     open: boolean;
     onClose: () => void;
     currentStatus: string;
     onUpdate: (newStatus: string) => void;
 }
 
-const UpdateConfirmationDialog: React.FC<UpdateConfirmationDialogProps> = ({ open, onClose, currentStatus, onUpdate }) => {
+const UpdateMerchandiseDialog: React.FC<UpdateMerchandiseDialogProps> = ({ open, onClose, currentStatus, onUpdate }) => {
     const [selectedStatus, setSelectedStatus] = useState(currentStatus);
 
     const handleStatusChange = (event: SelectChangeEvent<string>) => {
@@ -20,13 +20,13 @@ const UpdateConfirmationDialog: React.FC<UpdateConfirmationDialogProps> = ({ ope
             onUpdate(selectedStatus);
             onClose();
         } catch (error) {
-            console.error('Error updating status:', error);
+            console.error('Error updating merchandise status:', error);
         }
     };
 
     return (
         <Dialog open={open} onClose={onClose}>
-            <DialogTitle>Update Status Kehadiran</DialogTitle>
+            <DialogTitle>Update Status Merchandise</DialogTitle>
             <DialogContent>
                 <Select
                     value={selectedStatus}
@@ -34,10 +34,8 @@ const UpdateConfirmationDialog: React.FC<UpdateConfirmationDialogProps> = ({ ope
                     fullWidth
                     style={{ marginTop: '10px' }}
                 >
-                    <MenuItem value="confirmed">Hadir</MenuItem>
-                    <MenuItem value="to be confirmed">Belum Konfirmasi</MenuItem>
-                    <MenuItem value="represented">Mewakili</MenuItem>
-                    <MenuItem value="cancelled">Tidak Hadir</MenuItem>
+                    <MenuItem value="received">Sudah Terima</MenuItem>
+                    <MenuItem value="not received">Belum Terima</MenuItem>
                 </Select>
             </DialogContent>
             <DialogActions>
@@ -48,4 +46,4 @@ const UpdateConfirmationDialog: React.FC<UpdateConfirmationDialogProps> = ({ ope
     );
 };
 
-export default UpdateConfirmationDialog;
+export default UpdateMerchandiseDialog;

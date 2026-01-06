@@ -36,6 +36,11 @@ const Sidebar = () => {
         setIsOpen(false);
     };
 
+    const handleScanMerchandiseClick = () => {
+        navigate('/scan-merchandise');
+        setIsOpen(false);
+    };
+
     const toggleSidebar = () => {
         setIsOpen(!isOpen);
     };
@@ -60,41 +65,64 @@ const Sidebar = () => {
                     <div>PT DIGITAL OPEN HOUSE</div>
                 </div>
 
-                <div className={`cursor-pointer p-2 m-4 mb-1 text-lg font-semibold ${getNavItemClassName('/dashboard')} rounded flex items-center`} onClick={handleDashboardClick}>
-                    <HomeIcon className="h-6 w-6 mr-2" />
-                    Dashboard
-                </div>
+                {useAuth().token ? (
+                    <>
+                        <div className={`cursor-pointer p-2 m-4 mb-1 text-lg font-semibold ${getNavItemClassName('/dashboard')} rounded flex items-center`} onClick={handleDashboardClick}>
+                            <HomeIcon className="h-6 w-6 mr-2" />
+                            Dashboard
+                        </div>
+
+                        <div className="relative p-4 text-sm font-semibold text-gray-300 flex items-center">
+                            <span>Management</span>
+                            <span className="w-full h-px bg-gray-300 ml-2 flex-1"></span>
+                        </div>
+
+                        <ul className="p-4 space-y-2 overflow-auto pt-0">
+                            <li className={`cursor-pointer p-2 text-lg rounded flex items-center ${getNavItemClassName('/data')}`} onClick={handleEventDataClick}>
+                                <DocumentChartBarIcon className="h-6 w-6 mr-2" />
+                                Event Data
+                            </li>
+                            <li className={`cursor-pointer p-2 text-lg rounded flex items-center ${getNavItemClassName('/create')}`} onClick={handleCreateEventClick}>
+                                <PlusCircleIcon className="h-6 w-6 mr-2" />
+                                Create Event
+                            </li>
+                        </ul>
+                    </>
+                ) : null}
 
                 <div className="relative p-4 text-sm font-semibold text-gray-300 flex items-center">
-                    <span>Management</span>
+                    <span>Scanning</span>
                     <span className="w-full h-px bg-gray-300 ml-2 flex-1"></span>
                 </div>
 
-                <ul className="flex-1 p-4 space-y-2 overflow-auto">
-                    <li className={`cursor-pointer p-2 text-lg rounded flex items-center ${getNavItemClassName('/data')}`} onClick={handleEventDataClick}>
-                        <DocumentChartBarIcon className="h-6 w-6 mr-2" />
-                        Event Data
-                    </li>
-                    <li className={`cursor-pointer p-2 text-lg rounded flex items-center ${getNavItemClassName('/create')}`} onClick={handleCreateEventClick}>
-                        <PlusCircleIcon className="h-6 w-6 mr-2" />
-                        Create Event
-                    </li>
+                <ul className="p-4 space-y-2 overflow-auto pt-0">
                     <li className={`cursor-pointer p-2 text-lg rounded flex items-center ${getNavItemClassName('/scan')}`} onClick={handleScanQRCodeClick}>
                         <QrCodeIcon className="h-6 w-6 mr-2" />
-                        Scan QR
+                        Scan QR Kehadiran
+                    </li>
+                    <li className={`cursor-pointer p-2 text-lg rounded flex items-center ${getNavItemClassName('/scan-merchandise')}`} onClick={handleScanMerchandiseClick}>
+                        <QrCodeIcon className="h-6 w-6 mr-2 text-purple-200" />
+                        Scan QR Merchandise
                     </li>
                 </ul>
 
-                <div className="relative p-4 text-sm font-semibold text-gray-300 flex items-center">
-                    <span>Utilities</span>
+                <div className="mt-auto relative p-4 text-sm font-semibold text-gray-300 flex items-center">
+                    <span>Account</span>
                     <span className="w-full h-px bg-gray-300 ml-2 flex-1"></span>
                 </div>
 
-                <ul className="p-4 space-y-2">
-                    <li className={`p-2 text-lg rounded flex items-center cursor-pointer ${getNavItemClassName('/login')}`} onClick={handleLogoutClick}>
-                        <ArrowLeftStartOnRectangleIcon className="h-6 w-6 mr-2" />
-                        Logout
-                    </li>
+                <ul className="p-4 space-y-2 pt-0">
+                    {useAuth().token ? (
+                        <li className={`p-2 text-lg rounded flex items-center cursor-pointer hover:bg-white/10`} onClick={handleLogoutClick}>
+                            <ArrowLeftStartOnRectangleIcon className="h-6 w-6 mr-2" />
+                            Logout
+                        </li>
+                    ) : (
+                        <li className={`p-2 text-lg rounded flex items-center cursor-pointer hover:bg-white/10`} onClick={() => navigate('/login')}>
+                            <ArrowLeftStartOnRectangleIcon className="h-6 w-6 mr-2" />
+                            Login Petugas
+                        </li>
+                    )}
                 </ul>
             </div>
 

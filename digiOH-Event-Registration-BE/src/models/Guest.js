@@ -63,7 +63,17 @@ module.exports = (sequelize, DataTypes) => {
                 model: 'events',
                 key: 'id'
             }
-        }
+        },
+        merchandise: {
+            type: DataTypes.ENUM,
+            values: ['received', 'not received'],
+            allowNull: false,
+            defaultValue: 'not received'
+        },
+        merchandise_updated_by: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
     });
 
     return Guest;

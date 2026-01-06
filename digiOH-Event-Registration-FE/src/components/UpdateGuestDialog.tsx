@@ -10,6 +10,8 @@ interface Guest {
   attendance: string;
   emailed: boolean;
   instansi: string;
+  merchandise: string;
+  merchandise_updated_by?: string;
   attributes?: { [key: string]: string };
 }
 

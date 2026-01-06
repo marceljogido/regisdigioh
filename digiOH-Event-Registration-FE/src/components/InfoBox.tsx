@@ -1,19 +1,21 @@
 import React, { useEffect, useRef } from 'react';
 
 interface Guest {
-    id: number;
-    username: string;
-    email: string;
-    phoneNum: string;
-    confirmation: string;
-    attendance: string;
-    emailed: boolean;
-    instansi: string;
-    attributes?: { [key: string]: string };
-    confirmation_updated_by?: string;
-    attendance_updated_by?: string;
-    attributes_updated_by?: string;
-    email_sent_by?: string;
+  id: number;
+  username: string;
+  email: string;
+  phoneNum: string;
+  confirmation: string;
+  attendance: string;
+  emailed: boolean;
+  instansi: string;
+  merchandise: string;
+  merchandise_updated_by?: string;
+  attributes?: { [key: string]: string };
+  confirmation_updated_by?: string;
+  attendance_updated_by?: string;
+  attributes_updated_by?: string;
+  email_sent_by?: string;
 }
 
 interface InfoBoxProps {
@@ -47,12 +49,13 @@ const InfoBox: React.FC<InfoBoxProps> = ({ visible, position, guest, onClose }) 
   return (
     <div
       ref={infoBoxRef}
-      className="text-sm text-gray-500 font-light absolute p-2 bg-white border border-gray-300 shadow-md flex flex-col"
+      className="text-sm text-gray-500 font-light absolute p-2 bg-white border border-gray-300 shadow-md flex flex-col z-[100]"
       style={{ top: position.top, left: position.left }}
     >
       <div>Confirmation updated by: {guest.confirmation_updated_by ? guest.confirmation_updated_by : "Not updated yet"}</div>
       <div>Attendance updated by: {guest.attendance_updated_by ? guest.attendance_updated_by : "Not updated yet"}</div>
       <div>Attribute updated by: {guest.attributes_updated_by ? guest.attributes_updated_by : "Not updated yet"}</div>
+      <div>Merchandise updated by: {guest.merchandise_updated_by ? guest.merchandise_updated_by : "Not updated yet"}</div>
       <div>Email sent by: {guest.email_sent_by ? guest.email_sent_by : "Not updated yet"}</div>
     </div>
   );

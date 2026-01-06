@@ -1,21 +1,29 @@
 import { useState } from 'react';
+import { read, utils } from 'xlsx';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
 import { Input } from "./ui/input";
 import { toast } from 'react-toastify';
 
+import useGuestApi from '../api/guestApi';
+
 // Define the types for the props
 interface AddGuestDialogProps {
-    isOpen: boolean;
-    guestAttributes: string[];
-    onClose: () => void;
-    onSave: (newGuest: Record<string, any>) => void;
-    onImport: (selectedFile: File) => void;
+  isOpen: boolean;
+  guestAttributes: string[];
+  eventId: string | null;
+  onClose: () => void;
+  onSave: (newGuest: Record<string, any>) => void;
 }
 
-const AddGuestDialog = ({ isOpen, onClose, onSave, guestAttributes, onImport }: AddGuestDialogProps) => {
+const AddGuestDialog = ({ isOpen, onClose, onSave, guestAttributes, eventId }: AddGuestDialogProps) => {
   const [newGuest, setNewGuest] = useState<Record<string, any>>({});
   const [importMode, setImportMode] = useState<boolean>(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState<boolean>(false);
+  const [totalRows, setTotalRows] = useState<number>(0);
+  const [processedCount, setProcessedCount] = useState<number>(0);
+  const [importResult, setImportResult] = useState<any>(null);
+  const { addSingleGuest } = useGuestApi();
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,8 +34,117 @@ const AddGuestDialog = ({ isOpen, onClose, onSave, guestAttributes, onImport }: 
         return;
       }
 
-      onImport(selectedFile)
-      onClose();
+      setIsImporting(true);
+      setImportResult(null);
+
+      // 1. Read file to get total rows count for "fake" progress
+      // 1. Read file and Iterate
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = e.target?.result;
+          const workbook = read(data, { type: 'binary' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const json: any[][] = utils.sheet_to_json(worksheet, { header: 1 });
+
+          const headers = json.shift()?.map((h: any) => String(h).trim().toLowerCase()) || [];
+          const rows = json;
+          const count = rows.length;
+          setTotalRows(count);
+          setProcessedCount(0);
+
+          let successCount = 0;
+          let failCount = 0;
+
+          // Process one by one
+          for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            setProcessedCount(prev => prev + 1);
+
+            try {
+              // Map row to guest object (frontend mapping)
+              let guestData: any = {};
+              let attributesData: any = {};
+
+              const columnMap: any = {
+                'nama': 'username',
+                'username': 'username',
+                'full name': 'username',
+                'email': 'email',
+                'e-mail': 'email',
+                'no hp': 'phoneNum',
+                'phone': 'phoneNum',
+                'nomor hp': 'phoneNum',
+                'instansi': 'instansi',
+                'company': 'instansi',
+                'jabatan': 'attr:Jabatan',
+                'keterangan': 'attr:Keterangan',
+                'cp': 'attr:CP',
+                'contact person': 'attr:CP',
+                'no hp cp': 'attr:No HP CP',
+                'konfirmasi': 'confirmation',
+                'kehadiran': 'confirmation',
+                'hadir': 'confirmation',
+                'status': 'confirmation',
+                'jumlah orang': 'attr:Jumlah Orang',
+                'pax': 'attr:Jumlah Orang'
+              };
+
+              // Iterate based on headers to cover all columns including empty/sparse ones
+              headers.forEach((header: string, index: number) => {
+                const mapKey = columnMap[header];
+                const cellValue = row[index];
+
+                if (mapKey) {
+                  if (mapKey.startsWith('attr:')) {
+                    const attrName = mapKey.split(':')[1];
+                    attributesData[attrName] = cellValue !== undefined && cellValue !== null ? String(cellValue) : '';
+                  } else {
+                    if (mapKey === 'confirmation') {
+                      const val = String(cellValue).toLowerCase();
+                      if (['confirmed', 'represented', 'to be confirmed', 'cancelled'].includes(val)) {
+                        guestData[mapKey] = val;
+                      }
+                    } else {
+                      guestData[mapKey] = cellValue !== undefined && cellValue !== null ? String(cellValue) : '';
+                    }
+                  }
+                }
+              });
+
+              // Validation Defaults
+              if (!guestData.username) guestData.username = 'Unknown Guest';
+              if (!guestData.email) guestData.email = `guest-${Date.now()}-${Math.floor(Math.random() * 1000)}@no-email.com`;
+              if (!guestData.phoneNum) guestData.phoneNum = '-';
+
+              // Combine attributes into guestData for the API
+              guestData.attributes = attributesData;
+
+              // Send directly to API to avoid closing modal
+              await addSingleGuest(guestData, eventId);
+
+              successCount++;
+
+              // Simple delay to allow UI update if it's too fast
+              // await new Promise(r => setTimeout(r, 10));
+
+            } catch (err) {
+              console.error("Row import error", err);
+              failCount++;
+            }
+          }
+
+          setImportResult({ successCount, failCount });
+        } catch (error) {
+          console.error(error);
+          setImportResult({ successCount: 0, failCount: 0, error: true });
+        } finally {
+          setIsImporting(false);
+        }
+      };
+      reader.readAsBinaryString(selectedFile);
+
     } else {
       try {
         onSave(newGuest);
@@ -69,6 +186,7 @@ const AddGuestDialog = ({ isOpen, onClose, onSave, guestAttributes, onImport }: 
 
   const handleFormMode = () => {
     setImportMode(false);
+    setImportResult(null);
     setNewGuest({});
   };
 
@@ -78,22 +196,47 @@ const AddGuestDialog = ({ isOpen, onClose, onSave, guestAttributes, onImport }: 
       <form onSubmit={handleSave}>
         <DialogContent>
           {importMode ? (
-            <>
-              <Input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                onChange={handleFileChange}
-                required
-                className="cursor-pointer"
-              />
-              <Button
-                onClick={handleFormMode}
-                color="primary"
-                style={{ marginTop: '16px' }}
-              >
-                Form
-              </Button>
-            </>
+            importResult ? (
+              <div className="flex flex-col items-center justify-center space-y-4 py-6">
+                <div className="text-xl font-bold text-green-600">Import Successful!</div>
+                <div className="text-center">
+                  <p>Total Data Processed: <strong>{totalRows}</strong></p>
+                  <p className="text-green-600">Success: <strong>{importResult.successCount}</strong></p>
+                  <p className="text-red-500">Failed: <strong>{importResult.failCount}</strong></p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <Input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={handleFileChange}
+                  required
+                  className="cursor-pointer"
+                  disabled={isImporting}
+                />
+                <Button
+                  onClick={handleFormMode}
+                  color="primary"
+                  style={{ marginTop: '16px' }}
+                  disabled={isImporting}
+                >
+                  Form
+                </Button>
+                <Button
+                  color="secondary"
+                  variant="outlined"
+                  style={{ marginTop: '16px', marginLeft: '10px' }}
+                  onClick={() => {
+                    const baseUrl = process.env.REACT_APP_BASE_URL || 'http://localhost:5000';
+                    window.location.href = `${baseUrl}/api/download-template`;
+                  }}
+                  disabled={isImporting}
+                >
+                  Download Template
+                </Button>
+              </>
+            )
           ) : (
             <>
               <TextField
@@ -154,12 +297,21 @@ const AddGuestDialog = ({ isOpen, onClose, onSave, guestAttributes, onImport }: 
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose} color="primary">
-            Cancel
-          </Button>
-          <Button type="submit" color="primary">
-            Save
-          </Button>
+          {!importResult && (
+            <Button onClick={onClose} color="primary" disabled={isImporting}>
+              Cancel
+            </Button>
+          )}
+
+          {importResult ? (
+            <Button onClick={onClose} color="primary">
+              Done
+            </Button>
+          ) : (
+            <Button type="submit" color="primary" disabled={isImporting} >
+              {isImporting ? `Importing data... (${processedCount} of ${totalRows} data)` : 'Save'}
+            </Button>
+          )}
         </DialogActions>
       </form>
     </Dialog>
