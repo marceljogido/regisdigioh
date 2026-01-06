@@ -1,0 +1,48 @@
+{
+  "name": "digioh-event-registration-be",
+  "version": "1.0.0",
+  "description": "digiOH Event Registration Dashboard (Backend)",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "sequelize": "dotenv sequelize",
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^5.15.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "digioh-event-registration-be": "file:",
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "jszip": "^3.10.1",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.13",
+    "pg": "^8.12.0",
+    "pg-hstore": "^2.3.4",
+    "qrcode": "^1.5.3",
+    "read-excel-file": "^5.8.3",
+    "sequelize": "^6.37.3",
+    "sequelize-cli": "^6.6.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-mock": "^29.7.0",
+    "jest-mock-req-res": "^1.0.2",
+    "sequelize-mock": "^0.10.2",
+    "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "verbose": true,
+    "testTimeout": 10000
+  }
+}

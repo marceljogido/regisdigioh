@@ -1,0 +1,65 @@
+module.exports = (sequelize, DataTypes) => {
+    const Guest = sequelize.define("guest", {
+        email: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            isEmail: true
+        },
+        username: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        phoneNum: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        confirmation: {
+            type: DataTypes.ENUM,
+            values: ['confirmed', 'represented', 'to be confirmed', 'cancelled'],
+            allowNull: false,
+            defaultValue: 'to be confirmed'
+        },
+        attendance: {
+            type: DataTypes.ENUM,
+            values: ['attended', 'represented', 'did not attend'],
+            allowNull: false,
+            defaultValue: 'did not attend'
+        },
+        instansi: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: false,
+        },
+        emailed: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
+        },
+        confirmation_updated_by: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        attendance_updated_by: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        attributes_updated_by: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        email_sent_by: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        event_id: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            references: {
+                model: 'events',
+                key: 'id'
+            }
+        }
+    });
+
+    return Guest;
+};
