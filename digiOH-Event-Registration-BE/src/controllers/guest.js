@@ -512,7 +512,17 @@ exports.updateAttendance = async (req, res) => {
       return res.status(404).json({ error: "Guest not found" });
     }
 
-    await guest.update({ attendance });
+    // Singkronkan field confirmation berdasarkan attendance
+    let confirmation = guest.confirmation;
+    if (attendance === 'attended') {
+      confirmation = 'confirmed';
+    } else if (attendance === 'represented') {
+      confirmation = 'represented';
+    } else if (attendance === 'did not attend') {
+      confirmation = 'to be confirmed';
+    }
+
+    await guest.update({ attendance, confirmation });
     console.log(`Successfully updated attendance for ${guest.username} to ${attendance}`);
     res.status(200).json(guest);
   } catch (error) {
