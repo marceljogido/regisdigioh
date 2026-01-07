@@ -6,6 +6,8 @@ import Dashboard from "../pages/Dashboard";
 import ScanQR from "../pages/ScanQR";
 import ScanMerchandise from "../pages/ScanMerchandise";
 import CreateEvent from "../pages/CreateEvent";
+import ConfirmAttendance from "../pages/ConfirmAttendance";
+import ConfirmMerchandise from "../pages/ConfirmMerchandise";
 
 const routeList = createBrowserRouter([
     {
@@ -23,6 +25,8 @@ const routeList = createBrowserRouter([
             { path: "event/:id", element: <EventData /> },
             { path: "scan", element: <ScanQR /> },
             { path: "scan-merchandise", element: <ScanMerchandise /> },
+            { path: "confirm-attendance", element: <ConfirmAttendance /> },
+            { path: "confirm-merchandise", element: <ConfirmMerchandise /> },
         ],
     }
 ]);
