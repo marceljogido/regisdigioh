@@ -25,6 +25,7 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // Serve static files from public directory
 app.use('/public', express.static(path.join(__dirname, '../public')));
+app.use('/api/public', express.static(path.join(__dirname, '../public')));
 
 // Route for root
 app.get('/', (req, res) => {
