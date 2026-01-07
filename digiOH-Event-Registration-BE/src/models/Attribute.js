@@ -25,7 +25,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
         },
     }, {
-        tableName: 'attributes',
+        tableName: 'attrs',
         indexes: [
             {
                 unique: true,

@@ -52,9 +52,11 @@ const EventData = () => {
   const [dataVisible, setDataVisible] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [msgSettingOpen, setMsgSettingOpen] = useState(false);
-  const guestAttributes = [
+  const defaultAttributes = ['Jabatan', 'Keterangan', 'CP', 'No HP CP', 'Jumlah Orang'];
+  const guestAttributes = Array.from(new Set([
+    ...defaultAttributes,
     ...Object.keys(filteredGuests.reduce((acc, guest) => ({ ...acc, ...guest.attributes }), {})),
-  ];
+  ]));
   // Use URL param if available, otherwise fall back to localStorage
   const storedEventId = eventIdParam || localStorage.getItem("event id");
   const { getEvents, getLoadedEvent, changeLastUpdate } = useEventApi();
