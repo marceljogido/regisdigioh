@@ -10,23 +10,31 @@ const ScanMerchandise: React.FC = () => {
     const [cameraPermission, setCameraPermission] = useState<boolean>(false);
     const [cameraOpen, setCameraOpen] = useState<boolean>(false);
     const [scannedOnce, setScannedOnce] = useState<boolean>(false);
+    const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment'); // Default: back camera
 
     const { getGuestById } = useGuestApi();
 
-    useEffect(() => {
-        const requestCameraPermission = async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                setCameraPermission(true);
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                }
-            } catch (error) {
-                toast.error('Gagal mengakses kamera. Pastikan izin kamera diberikan.');
+    const startCamera = async (facing: 'environment' | 'user') => {
+        try {
+            // Stop existing stream first
+            if (videoRef.current && videoRef.current.srcObject) {
+                (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
             }
-        };
 
-        requestCameraPermission();
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: facing }
+            });
+            setCameraPermission(true);
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+        } catch (error) {
+            toast.error('Gagal mengakses kamera. Pastikan izin kamera diberikan.');
+        }
+    };
+
+    useEffect(() => {
+        startCamera(facingMode);
 
         return () => {
             if (videoRef.current && videoRef.current.srcObject) {
@@ -75,7 +83,6 @@ const ScanMerchandise: React.FC = () => {
             const guestResponse = await getGuestById(scannedText);
 
             if (guestResponse && guestResponse.id) {
-                // Navigate to confirmation page with guest data
                 navigate('/confirm-merchandise', { state: { guest: guestResponse } });
             } else {
                 toast.error('Data tamu tidak ditemukan!');
@@ -89,7 +96,12 @@ const ScanMerchandise: React.FC = () => {
         }
     };
 
-    // Reset scannedOnce when returning to this page
+    const toggleCamera = async () => {
+        const newFacing = facingMode === 'environment' ? 'user' : 'environment';
+        setFacingMode(newFacing);
+        await startCamera(newFacing);
+    };
+
     useEffect(() => {
         setScannedOnce(false);
     }, []);
@@ -107,11 +119,21 @@ const ScanMerchandise: React.FC = () => {
                 </button>
 
                 {cameraOpen && cameraPermission && (
-                    <div className="relative w-full aspect-square overflow-hidden rounded-2xl border-4 border-amber-400 bg-black shadow-inner">
-                        <video ref={videoRef} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 border-[30px] border-black opacity-30 pointer-events-none"></div>
-                        <div className="absolute inset-x-8 top-1/2 h-0.5 bg-amber-500 shadow-[0_0_12px_gold] animate-pulse"></div>
-                    </div>
+                    <>
+                        <div className="relative w-full aspect-square overflow-hidden rounded-2xl border-4 border-amber-400 bg-black shadow-inner">
+                            <video ref={videoRef} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 border-[30px] border-black opacity-30 pointer-events-none"></div>
+                            <div className="absolute inset-x-8 top-1/2 h-0.5 bg-amber-500 shadow-[0_0_12px_gold] animate-pulse"></div>
+                        </div>
+                        {/* Camera Toggle Button */}
+                        <button
+                            onClick={toggleCamera}
+                            className="mt-4 w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-all active:scale-95 flex items-center justify-center gap-2"
+                        >
+                            <span className="text-xl">🔄</span>
+                            {facingMode === 'environment' ? 'Ganti ke Kamera Depan' : 'Ganti ke Kamera Belakang'}
+                        </button>
+                    </>
                 )}
 
                 {!cameraOpen && (
