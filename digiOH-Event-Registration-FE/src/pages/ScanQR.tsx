@@ -16,6 +16,7 @@ const ScanQR: React.FC = () => {
   const [showPopup, setShowPopup] = useState<boolean>(false);
   const [guest, setGuest] = useState<Guest | null>(null);
   const [scannedOnce, setScannedOnce] = useState<boolean>(false);
+  const [jumlahOrang, setJumlahOrang] = useState<number>(1);
 
   const {
     getGuestById,
@@ -23,6 +24,7 @@ const ScanQR: React.FC = () => {
     updateGuestAttendanceBy,
     updateGuestConfirmation,
     updateGuestConfirmationBy,
+    updateJumlahOrang,
   } = useGuestApi();
 
   useEffect(() => {
@@ -113,6 +115,7 @@ const ScanQR: React.FC = () => {
     setShowPopup(false);
     setScannedOnce(false);
     setGuest(null);
+    setJumlahOrang(1); // Reset jumlah orang
   };
 
   const handleAttend = async () => {
@@ -129,7 +132,10 @@ const ScanQR: React.FC = () => {
       await updateGuestAttendanceBy(updater, guest.id.toString());
       await updateGuestConfirmationBy(updater, guest.id.toString());
 
-      toast.success(`${guest.username} berhasil Check-in (Hadir)!`);
+      // Update jumlah orang
+      await updateJumlahOrang(jumlahOrang, guest.id.toString());
+
+      toast.success(`${guest.username} berhasil Check-in (${jumlahOrang} orang)!`);
       handlePopupClose();
     } catch (error) {
       console.error('Error updating attendance:', error);
@@ -234,6 +240,28 @@ const ScanQR: React.FC = () => {
               {/* Logika Kondisional: Tombol hanya muncul jika belum absen */}
               {guest.attendance !== 'attended' && guest.attendance !== 'represented' && guest.confirmation !== 'confirmed' && guest.confirmation !== 'represented' ? (
                 <>
+                  {/* Counter Jumlah Orang */}
+                  <div className="mb-4">
+                    <p className="text-gray-600 font-bold text-sm mb-2 uppercase tracking-wide">Jumlah Orang Hadir</p>
+                    <div className="flex items-center justify-center gap-4">
+                      <button
+                        onClick={() => setJumlahOrang(prev => Math.max(1, prev - 1))}
+                        className="w-14 h-14 bg-gray-100 hover:bg-gray-200 rounded-2xl font-black text-2xl text-gray-600 transition-all active:scale-95 shadow-sm"
+                      >
+                        -
+                      </button>
+                      <span className="text-4xl font-black text-blue-600 w-16 text-center">
+                        {jumlahOrang}
+                      </span>
+                      <button
+                        onClick={() => setJumlahOrang(prev => prev + 1)}
+                        className="w-14 h-14 bg-gray-100 hover:bg-gray-200 rounded-2xl font-black text-2xl text-gray-600 transition-all active:scale-95 shadow-sm"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
                   <button onClick={handleAttend} className="w-full py-5 bg-green-500 hover:bg-green-600 text-white rounded-3xl font-black shadow-xl shadow-green-100 transition-all active:scale-95 text-xl tracking-tight">
                     HADIR
                   </button>

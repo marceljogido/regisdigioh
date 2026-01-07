@@ -25,6 +25,7 @@ router.patch('/attributes/:id', guestController.updateGuestAttributes);
 router.patch('/attributes-by/:id', guestController.updateAttributesUpdatedBy);
 router.patch('/merchandise/:id', guestController.updateMerchandise);
 router.patch('/merchandise-by/:id', guestController.updateMerchandiseBy);
+router.patch('/update-jumlah-orang/:id', guestController.updateJumlahOrang);
 
 router.delete('/guest/:id', guestController.deleteGuest);
 

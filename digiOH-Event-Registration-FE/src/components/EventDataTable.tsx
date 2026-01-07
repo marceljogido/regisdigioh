@@ -30,24 +30,30 @@ interface Props {
     guests: Guest[];
     updateAttendance: (selectedAttendanceStatus: string, guestId: number) => void;
     updateMerchandise: (selectedMerchandiseStatus: string, guestId: number) => void;
+    updateJumlahOrang: (jumlahOrang: number, guestId: number) => void;
     getIconForSorting: (key: string) => React.ReactNode;
     handleSort: (key: string) => void;
     selectedGuests: Set<number>;
     selectAll: boolean;
     onSelectGuest: (id: number) => void;
     onSelectAll: (currentState: boolean) => void;
+    currentPage: number;
+    itemsPerPage: number;
 }
 
 const EventDataTable: React.FC<Props> = ({
     guests,
     updateAttendance,
     updateMerchandise,
+    updateJumlahOrang,
     getIconForSorting,
     handleSort,
     selectedGuests,
     selectAll,
     onSelectGuest,
     onSelectAll,
+    currentPage,
+    itemsPerPage
 }) => {
     const navigate = useNavigate();
     const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false);
@@ -126,11 +132,15 @@ const EventDataTable: React.FC<Props> = ({
         setInfoGuest(null);
     }
 
-    const handleConfirmationUpdate = async (newStatus: string) => {
+    const handleConfirmationUpdate = async (newStatus: string, jumlahOrang: number) => {
         if (selectedGuest) {
             try {
                 await updateAttendance(newStatus, selectedGuest.id);
-                toast.success('Status kehadiran berhasil diupdate!');
+                // Update jumlah orang jika status hadir atau mewakili
+                if (newStatus === 'attended' || newStatus === 'represented') {
+                    await updateJumlahOrang(jumlahOrang, selectedGuest.id);
+                }
+                toast.success(`Status kehadiran berhasil diupdate! (${jumlahOrang} orang)`);
             } catch (error) {
                 toast.error('Gagal mengupdate status kehadiran!');
             }
@@ -147,8 +157,6 @@ const EventDataTable: React.FC<Props> = ({
             }
         }
     };
-
-
 
     return (
         <div className="my-2 rounded-b-xl border-slate-950 bg-[#ffffff] overflow-x-auto">
@@ -195,7 +203,7 @@ const EventDataTable: React.FC<Props> = ({
                                     />
                                 </TableCell>
                                 <TableCell className="text-center font-medium">
-                                    {index + 1}
+                                    {(currentPage - 1) * itemsPerPage + index + 1}
                                 </TableCell>
                                 <TableCell className="font-medium text-left">
                                     <div className="flex items-center justify-start">
@@ -258,7 +266,13 @@ const EventDataTable: React.FC<Props> = ({
             {/* Dialog-dialog tetap sama di bawah */}
             {
                 selectedGuest && (
-                    <UpdateConfirmationDialog open={confirmationDialogOpen} onClose={handleConfirmationDialogClose} currentStatus={selectedGuest.attendance} onUpdate={handleConfirmationUpdate} />
+                    <UpdateConfirmationDialog
+                        open={confirmationDialogOpen}
+                        onClose={handleConfirmationDialogClose}
+                        currentStatus={selectedGuest.attendance}
+                        currentJumlahOrang={parseInt(selectedGuest.attributes?.['Jumlah Orang'] || selectedGuest.attributes?.['jumlah orang'] || '1')}
+                        onUpdate={handleConfirmationUpdate}
+                    />
                 )
             }
             {

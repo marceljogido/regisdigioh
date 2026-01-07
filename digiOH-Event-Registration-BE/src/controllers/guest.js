@@ -10,7 +10,7 @@ exports.getGuestsByEvent = async (req, res) => {
   try {
     const { event_id } = req.params;
     const { confirmation, attendance, search, page = 1, sortBy = 'id', sortOrder = 'ASC' } = req.query;
-    const limit = 10;
+    const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
     let whereClause = { event_id: event_id };
@@ -200,52 +200,227 @@ exports.getGuestByUniqueCode = async (req, res) => {
 
     // Generate QR code
     const qrContent = `${process.env.BASE_URL || 'http://localhost:5000'}/api/guest/${unique_code}`;
-    const qrBuffer = await generateQRCode(qrContent);
+    const qrBuffer = await generateQRCode(qrContent, {
+      color: { dark: '#000000', light: '#00000000' }, // Transparent background, Black QR
+      width: 600,
+      margin: 0 // No margin needed as box provides padding
+    });
     const qrBase64 = `data:image/png;base64,${qrBuffer.toString('base64')}`;
 
-    // Return HTML page with guest info and QR
+    // Return HTML page with guest info, QR, and confirmation form
+    const isAlreadyAttended = guest.attendance === 'attended';
+
     res.send(`
       <!DOCTYPE html>
       <html>
       <head>
         <title>Guest: ${guest.username}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
         <style>
-          body { font-family: Arial, sans-serif; text-align: center; padding: 30px; background: #f5f5f5; }
-          .card { background: white; border-radius: 15px; padding: 30px; max-width: 400px; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-          h1 { color: #333; margin-bottom: 10px; }
-          .qr-code { margin: 20px 0; }
-          .qr-code img { width: 250px; height: 250px; border: 3px solid #eee; border-radius: 10px; }
-          .info { text-align: left; margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 10px; }
-          .info p { margin: 8px 0; color: #555; }
-          .info strong { color: #333; }
-          .status { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
-          .confirmed { background: #d4edda; color: #155724; }
-          .to-be-confirmed { background: #fff3cd; color: #856404; }
-          .cancelled { background: #f8d7da; color: #721c24; }
-          .represented { background: #cce5ff; color: #004085; }
+          /* Adjusted styles for Image Render Mode */
+          body {
+            background-color: #1a1a1a;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: auto; /* Allow scrolling if needed */
+            font-family: 'Inter', sans-serif;
+          }
+          
+          #main-layout {
+            /* Keep original layout for rendering source */
+            width: 1080px;
+            height: 1920px;
+            background: url('${process.env.BASE_URL || 'http://localhost:5000'}/public/background-qr.jpg') no-repeat center center;
+            background-size: cover;
+            position: absolute;
+            left: -9999px; /* Hide off-screen but keep renderable */
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 580px; 
+            box-sizing: border-box;
+          }
+
+          /* Results Container */
+          #result-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+          }
+
+          #generated-image {
+            max-height: 80vh;
+            max-width: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 20px;
+            margin-bottom: 20px;
+          }
+
+          /* QR Code Box - Solid White */
+          .qr-box {
+            background: #ffffff; /* Solid White */
+            border-radius: 40px;
+            padding: 30px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            margin-bottom: 60px;
+            width: 580px;
+            height: 580px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+
+          .qr-box img { 
+            width: 520px; 
+            height: 520px; 
+            display: block;
+          }
+          
+          /* Typography */
+          .nama {
+            font-family: 'Inter', sans-serif;
+            font-size: 55px;
+            font-weight: 700; /* Bold */
+            color: #EAC976; 
+            text-transform: uppercase;
+            margin: 0 0 10px 0;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            max-width: 900px;
+            line-height: 1.2;
+          }
+          
+          .jabatan {
+            font-family: 'Inter', sans-serif;
+            font-size: 32px;
+            color: #EAC976; 
+            margin: 5px 0;
+            font-weight: 400; /* Biasa (Regular) */
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+          }
+
+          .instansi {
+            font-family: 'Inter', sans-serif;
+            font-size: 32px;
+            color: #EAC976; 
+            margin: 5px 0;
+            font-weight: 700; /* Bold */
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+            margin-top: 5px;
+          }  
+          /* Download Button */
+          #download-btn {
+            background: #235b83;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+          }
+          #download-btn:hover {
+            background: #1a4563;
+            transform: scale(1.05);
+          }
         </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
       </head>
       <body>
-        <div class="card">
-          <h1>👤 ${guest.username}</h1>
-          <div class="qr-code">
-            <img src="${qrBase64}" alt="QR Code">
+        <!-- Hidden Source Layout -->
+        <div id="main-layout">
+          
+          <!-- QR Code Section -->
+          <div class="qr-box">
+             <img src="${qrBase64}" alt="QR Code">
           </div>
-          <div class="info">
-            <p><strong>Email:</strong> ${guest.email || '-'}</p>
-            <p><strong>Phone:</strong> ${guest.phoneNum || '-'}</p>
-            <p><strong>Instansi:</strong> ${guest.instansi || '-'}</p>
-            <p><strong>Jabatan:</strong> ${attrs['Jabatan'] || attrs['jabatan'] || '-'}</p>
-            <p><strong>CP:</strong> ${attrs['CP'] || attrs['cp'] || '-'}</p>
-            <p><strong>No HP CP:</strong> ${attrs['No HP CP'] || attrs['no hp cp'] || '-'}</p>
-            <p><strong>Keterangan:</strong> ${attrs['Keterangan'] || attrs['keterangan'] || '-'}</p>
-            <p><strong>Jumlah Orang:</strong> ${attrs['Jumlah Orang'] || attrs['jumlah orang'] || '-'}</p>
-            <p><strong>Kehadiran:</strong> 
-              <span class="status ${(guest.attendance || '').replace(/ /g, '-')}">${guest.attendance || '-'}</span>
-            </p>
-            <p><strong>Merchandise:</strong> ${guest.merchandise === 'received' ? 'Sudah Terima' : 'Belum Terima'}</p>
+
+          <!-- Text Section -->
+          <div style="text-align: center;">
+            <h1 class="nama">${guest.username}</h1>
+            <p class="jabatan">${attrs['Jabatan'] || attrs['jabatan'] || '-'}</p>
+            <p class="instansi">${guest.instansi || '-'}</p>
           </div>
+
         </div>
+        
+        <!-- Visible Result Container -->
+        <div id="result-container" style="opacity: 0; transition: opacity 0.5s;">
+           <img id="generated-image" alt="E-Invitation Preview" />
+           
+           <button id="download-btn" onclick="downloadImage()">
+             📥 Download e-Invitation
+           </button>
+        </div>
+
+        <script>
+          // Script to render visual image on load
+          window.addEventListener('load', async () => {
+             const layout = document.getElementById('main-layout');
+             const container = document.getElementById('result-container');
+             const img = document.getElementById('generated-image');
+             const btn = document.getElementById('download-btn');
+             
+             // Initial status
+             btn.textContent = '⏳ Generating Preview...';
+             btn.disabled = true;
+             
+             try {
+                // Generate high-res canvas
+                const canvas = await html2canvas(layout, {
+                  scale: 2, // 2x scale for sharpness
+                  useCORS: true, 
+                  allowTaint: true,
+                  backgroundColor: null
+                });
+                
+                // Set image source
+                const dataUrl = canvas.toDataURL('image/png');
+                img.src = dataUrl;
+                
+                // Show container
+                container.style.opacity = '1';
+                btn.textContent = '📥 Download e-Invitation';
+                btn.disabled = false;
+                
+             } catch (e) {
+                console.error("Rendering failed", e);
+                alert("Gagal memuat preview kartu.");
+             }
+          });
+
+          // Download Function
+          function downloadImage() {
+            const img = document.getElementById('generated-image');
+            if (!img.src) return;
+            
+            const link = document.createElement('a');
+            link.download = 'E-Invitation-${guest.username.replace(/[^a-z0-9]/gi, '_')}.png';
+            link.href = img.src;
+            link.click();
+          }
+        </script>
       </body>
       </html>
     `);
@@ -376,6 +551,37 @@ exports.updateMerchandiseBy = async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
+// Update Jumlah Orang attribute
+exports.updateJumlahOrang = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { jumlah_orang } = req.body;
+
+    const guest = await Guest.findByPk(id);
+    if (!guest) return res.status(404).json({ error: "Guest not found" });
+
+    // Update or create the Jumlah Orang attribute
+    const [attr, created] = await Attribute.findOrCreate({
+      where: {
+        event_id: guest.event_id,
+        guest_id: guest.id,
+        attribute_key: 'Jumlah Orang'
+      },
+      defaults: { attribute_value: String(jumlah_orang) }
+    });
+
+    if (!created) {
+      await attr.update({ attribute_value: String(jumlah_orang) });
+    }
+
+    console.log(`Updated Jumlah Orang for guest ${id} to ${jumlah_orang}`);
+    res.status(200).json({ message: "Jumlah Orang updated", jumlah_orang });
+  } catch (error) {
+    console.error('Error updating Jumlah Orang:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.deleteGuest = async (req, res) => {
   try {
     await Guest.destroy({ where: { id: req.params.id } });
@@ -395,7 +601,8 @@ exports.sendEmail = async (req, res) => { res.json({ ok: true }); };
 // --- FUNGSI DOWNLOAD TEMPLATE ---
 exports.downloadTemplate = async (req, res) => {
   try {
-    const headers = ['Nama', 'Email', 'No HP', 'Jabatan', 'Instansi', 'Keterangan', 'CP', 'No HP CP', 'Konfirmasi', 'Jumlah Orang'];
+    // Removed 'Konfirmasi' and 'Jumlah Orang' - they are handled via QR scan attendance
+    const headers = ['Nama', 'Email', 'No HP', 'Jabatan', 'Instansi', 'Keterangan', 'CP', 'No HP CP'];
     const csvContent = headers.join(';') + '\n'; // Use semicolon for better Excel compatibility in some regions
 
     res.setHeader('Content-Type', 'text/csv');
@@ -465,8 +672,7 @@ exports.importGuests = async (req, res) => {
           email: '',
           phoneNum: '',
           instansi: '',
-          confirmation: 'to be confirmed',
-          attendance: 'did not attend',
+          attendance: 'did not attend', // Default: Belum Hadir
           unique_code: generateUniqueCode(8)
         };
 
@@ -481,17 +687,9 @@ exports.importGuests = async (req, res) => {
             if (mapKey.startsWith('attr:')) {
               const attrName = mapKey.split(':')[1];
               attributesData[attrName] = cellValue !== null ? String(cellValue) : '';
-            } else {
-              // Basic fields
-              if (mapKey === 'confirmation') {
-                // Normalize confirmation status
-                const val = String(cellValue).toLowerCase();
-                if (['confirmed', 'represented', 'to be confirmed', 'cancelled'].includes(val)) {
-                  guestData[mapKey] = val;
-                }
-              } else {
-                guestData[mapKey] = cellValue !== null ? String(cellValue) : '';
-              }
+            } else if (mapKey !== 'confirmation') {
+              // Skip confirmation field, only use attendance
+              guestData[mapKey] = cellValue !== null ? String(cellValue) : '';
             }
           }
         });
@@ -633,7 +831,7 @@ exports.exportToExcel = async (req, res) => {
         attrs['Keterangan'] || attrs['keterangan'] || '-',
         attrs['CP'] || attrs['cp'] || '-',
         attrs['No HP CP'] || attrs['no hp cp'] || '-',
-        capitalizeFirstLetter(guest.confirmation),
+        capitalizeFirstLetter(guest.attendance), // Use attendance status instead of confirmation
         formatMerchandise(guest.merchandise),
         attrs['Jumlah Orang'] || attrs['jumlah orang'] || '-'
       ].map(val => {

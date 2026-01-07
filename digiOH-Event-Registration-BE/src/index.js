@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const path = require('path');
 
 const guestsRoutes = require('./routes/guest.js');
 const usersRoutes = require('./routes/user.js');
@@ -21,6 +22,9 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
+
+// Serve static files from public directory
+app.use('/public', express.static(path.join(__dirname, '../public')));
 
 // Route for root
 app.get('/', (req, res) => {

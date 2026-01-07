@@ -86,6 +86,11 @@ const useGuestApi = () => {
         return response.data;
     };
 
+    const updateJumlahOrang = async (jumlahOrang: number, guestId: string) => {
+        const response = await axiosClient.patch(`/update-jumlah-orang/${guestId}`, { jumlah_orang: jumlahOrang });
+        return response.data;
+    };
+
     // Delete
     const deleteSingleGuest = async (guestId: string) => {
         const response = await axiosClient.delete(`/guest/${guestId}`);
@@ -150,6 +155,7 @@ const useGuestApi = () => {
         updateGuestAttributesBy,
         updateGuestMerchandise,
         updateGuestMerchandiseBy,
+        updateJumlahOrang,
         deleteSingleGuest,
         exportGuestsToExcel,
         sendEmailToGuest,

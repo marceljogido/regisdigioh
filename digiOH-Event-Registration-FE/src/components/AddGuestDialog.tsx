@@ -147,7 +147,23 @@ const AddGuestDialog = ({ isOpen, onClose, onSave, guestAttributes, eventId }: A
 
     } else {
       try {
-        onSave(newGuest);
+        // Prepare structured data for API
+        const guestData: Record<string, any> = {
+          username: newGuest['username'],
+          email: newGuest['email'],
+          phoneNum: newGuest['phoneNum'],
+          instansi: newGuest['instansi'],
+          attributes: {}
+        };
+
+        // Collect dynamic attributes (like Jabatan)
+        guestAttributes.forEach(attr => {
+          if (newGuest[attr]) {
+            guestData.attributes[attr] = newGuest[attr];
+          }
+        });
+
+        onSave(guestData);
         setNewGuest({});
         toast.success('Guest added successfully!', {
           position: "top-right",

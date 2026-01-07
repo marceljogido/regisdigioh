@@ -70,6 +70,7 @@ const EventData = () => {
     updateGuestEmailedBy,
     updateGuestMerchandise,
     updateGuestMerchandiseBy,
+    updateJumlahOrang,
     deleteSingleGuest,
     exportGuestsToExcel,
     sendEmailToGuest,
@@ -273,14 +274,50 @@ const EventData = () => {
     });
   };
 
-  const handleSelectAll = (selectAll: boolean) => {
+  const handleSelectAll = async (selectAll: boolean) => {
     if (selectAll) {
-      const allGuestIds = new Set(filteredGuests.map((guest) => guest.id));
-      setSelectedGuests(allGuestIds);
-      setSelectAll(selectAll);
+      if (!token || !storedEventId) return;
+
+      const id = toast.loading("Memilih semua data...");
+
+      try {
+        // Construct query similar to filtered view but with large limit
+        const queryParams = [];
+        if (searchQuery) queryParams.push(`search=${searchQuery}`);
+        if (confirmationFilter) queryParams.push(`confirmation=${confirmationFilter.toLowerCase()}`);
+        if (attendanceFilter) queryParams.push(`attendance=${attendanceFilter.toLowerCase()}`);
+        if (sortConfig.key) queryParams.push(`sortBy=${sortConfig.key}&sortOrder=${sortConfig.direction}`);
+
+        // Add large limit to get ALL matching guests
+        queryParams.push(`limit=100000`);
+
+        const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
+
+        const response = await getGuestsSearchFilter(storedEventId, queryString);
+
+        const allGuestIds = new Set(response.guests.map((guest: Guest) => guest.id));
+        setSelectedGuests(allGuestIds);
+        setSelectAll(true);
+
+        toast.update(id, {
+          render: `Berhasil memilih ${allGuestIds.size} tamu!`,
+          type: "success",
+          isLoading: false,
+          autoClose: 2000
+        });
+
+      } catch (error) {
+        console.error("Error fetching all guests for select all:", error);
+        toast.update(id, {
+          render: "Gagal memilih semua data",
+          type: "error",
+          isLoading: false,
+          autoClose: 3000
+        });
+      }
     } else {
       setSelectedGuests(new Set());
-      setSelectAll(selectAll);
+      setSelectAll(false);
     }
   };
 
@@ -966,18 +1003,27 @@ const EventData = () => {
             </div>
           </div>
         </div>
-        <div className="w-auto">
-          <EventDataTable
-            guests={filteredGuests}
-            selectedGuests={selectedGuests}
-            selectAll={selectAll}
-            updateAttendance={updateAttendance}
-            updateMerchandise={updateMerchandise}
-            getIconForSorting={getIconForSorting}
-            handleSort={handleSort}
-            onSelectGuest={handleSelectGuest}
-            onSelectAll={handleSelectAll}
-          />
+        <div className="w-full mt-8">
+          {events.length > 0 ? (
+            <EventDataTable
+              guests={filteredGuests}
+              updateAttendance={updateAttendance}
+              updateMerchandise={updateMerchandise}
+              updateJumlahOrang={updateJumlahOrang}
+              handleSort={handleSort}
+              getIconForSorting={getIconForSorting}
+              selectedGuests={selectedGuests}
+              selectAll={selectAll}
+              onSelectGuest={handleSelectGuest}
+              onSelectAll={handleSelectAll}
+              currentPage={currentPage}
+              itemsPerPage={10} // Pagination default limit in backend is usually 10
+            />
+          ) : (
+            <div className="text-center text-gray-500 my-8">
+              No events available. Create an event to get started.
+            </div>
+          )}
         </div>
       </div>
       <div className="mt-4">
