@@ -46,7 +46,7 @@ exports.getGuestsByEvent = async (req, res) => {
 
       // Use unique_code for QR if available, otherwise fallback to ID
       const qrContent = guest.unique_code
-        ? `${process.env.BASE_URL || 'http://localhost:5000'}/guest/${guest.unique_code}`
+        ? `${process.env.BASE_URL || 'http://localhost:5000'}/api/guest/${guest.unique_code}`
         : guest.id.toString();
       const qrBuffer = await generateQRCode(qrContent);
       const qrBase64 = `data:image/png;base64,${qrBuffer.toString('base64')}`;
@@ -110,7 +110,7 @@ exports.addGuest = async (req, res) => {
     }
 
     // QR Code contains the link with unique code
-    const qrContent = `${process.env.BASE_URL || 'http://localhost:5000'}/guest/${uniqueCode}`;
+    const qrContent = `${process.env.BASE_URL || 'http://localhost:5000'}/api/guest/${uniqueCode}`;
     const qrBuffer = await generateQRCode(qrContent);
     const qrCode = `data:image/png;base64,${qrBuffer.toString('base64')}`;
 
@@ -164,6 +164,103 @@ exports.getGuestById = async (req, res) => {
   } catch (error) {
     console.error('Error in getGuestById:', error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+// 3b. Get Guest by Unique Code - Returns HTML page with QR
+exports.getGuestByUniqueCode = async (req, res) => {
+  try {
+    const { unique_code } = req.params;
+    console.log(`Looking up guest by unique_code: ${unique_code}`);
+
+    const guest = await Guest.findOne({ where: { unique_code: unique_code } });
+
+    if (!guest) {
+      return res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Guest Not Found</title></head>
+        <body style="font-family: Arial; text-align: center; padding: 50px;">
+          <h1>🚫 Guest Not Found</h1>
+          <p>No guest found with code: <strong>${unique_code}</strong></p>
+        </body>
+        </html>
+      `);
+    }
+
+    // Fetch guest attributes
+    const attributeRows = await Attribute.findAll({
+      where: { event_id: guest.event_id, guest_id: guest.id },
+      attributes: ['attribute_key', 'attribute_value']
+    });
+    const attrs = attributeRows.reduce((acc, attr) => {
+      acc[attr.attribute_key] = attr.attribute_value;
+      return acc;
+    }, {});
+
+    // Generate QR code
+    const qrContent = `${process.env.BASE_URL || 'http://localhost:5000'}/api/guest/${unique_code}`;
+    const qrBuffer = await generateQRCode(qrContent);
+    const qrBase64 = `data:image/png;base64,${qrBuffer.toString('base64')}`;
+
+    // Return HTML page with guest info and QR
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Guest: ${guest.username}</title>
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; padding: 30px; background: #f5f5f5; }
+          .card { background: white; border-radius: 15px; padding: 30px; max-width: 400px; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+          h1 { color: #333; margin-bottom: 10px; }
+          .qr-code { margin: 20px 0; }
+          .qr-code img { width: 250px; height: 250px; border: 3px solid #eee; border-radius: 10px; }
+          .info { text-align: left; margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 10px; }
+          .info p { margin: 8px 0; color: #555; }
+          .info strong { color: #333; }
+          .status { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
+          .confirmed { background: #d4edda; color: #155724; }
+          .to-be-confirmed { background: #fff3cd; color: #856404; }
+          .cancelled { background: #f8d7da; color: #721c24; }
+          .represented { background: #cce5ff; color: #004085; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>👤 ${guest.username}</h1>
+          <div class="qr-code">
+            <img src="${qrBase64}" alt="QR Code">
+          </div>
+          <div class="info">
+            <p><strong>Email:</strong> ${guest.email || '-'}</p>
+            <p><strong>Phone:</strong> ${guest.phoneNum || '-'}</p>
+            <p><strong>Instansi:</strong> ${guest.instansi || '-'}</p>
+            <p><strong>Jabatan:</strong> ${attrs['Jabatan'] || attrs['jabatan'] || '-'}</p>
+            <p><strong>CP:</strong> ${attrs['CP'] || attrs['cp'] || '-'}</p>
+            <p><strong>No HP CP:</strong> ${attrs['No HP CP'] || attrs['no hp cp'] || '-'}</p>
+            <p><strong>Keterangan:</strong> ${attrs['Keterangan'] || attrs['keterangan'] || '-'}</p>
+            <p><strong>Jumlah Orang:</strong> ${attrs['Jumlah Orang'] || attrs['jumlah orang'] || '-'}</p>
+            <p><strong>Kehadiran:</strong> 
+              <span class="status ${(guest.attendance || '').replace(/ /g, '-')}">${guest.attendance || '-'}</span>
+            </p>
+            <p><strong>Merchandise:</strong> ${guest.merchandise === 'received' ? 'Sudah Terima' : 'Belum Terima'}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('Error in getGuestByUniqueCode:', error);
+    res.status(500).send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Error</title></head>
+      <body style="font-family: Arial; text-align: center; padding: 50px;">
+        <h1>❌ Error</h1>
+        <p>${error.message}</p>
+      </body>
+      </html>
+    `);
   }
 };
 
@@ -524,7 +621,7 @@ exports.exportToExcel = async (req, res) => {
     const rows = guests.map((guest, index) => {
       const attrs = attrMap[guest.id] || {};
       const qrContent = guest.unique_code
-        ? `${baseUrl}/guest/${guest.unique_code}`
+        ? `${baseUrl}/api/guest/${guest.unique_code}`
         : guest.id.toString();
 
       return [

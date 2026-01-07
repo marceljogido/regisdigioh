@@ -7,6 +7,7 @@ const upload = require('../middlewares/upload');
 router.get('/guests/event/:event_id', guestController.getGuestsByEvent);
 router.get('/guests/count-confirmation/:event_id', guestController.getGuestCountByConfirmationStatus);
 router.get('/guests/:guest_id', guestController.getGuestById);
+router.get('/guest/:unique_code', guestController.getGuestByUniqueCode);
 
 router.post('/guests', guestController.addGuest);
 router.post('/import-guests', upload.single('file'), guestController.importGuests);

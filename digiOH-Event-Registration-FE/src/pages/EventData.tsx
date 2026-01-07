@@ -64,8 +64,8 @@ const EventData = () => {
     getAllGuests,
     countConfirmation,
     getGuestsSearchFilter,
-    updateGuestConfirmation,
-    updateGuestConfirmationBy,
+    updateGuestAttendance,
+    updateGuestAttendanceBy,
     updateGuestEmailed,
     updateGuestEmailedBy,
     updateGuestMerchandise,
@@ -257,10 +257,6 @@ const EventData = () => {
     }
   };
 
-  const handleConfirmationFilterChange = (status: string) => {
-    setConfirmationFilter(status.toLowerCase() === 'all' ? null : status.toLowerCase());
-  };
-
   const handleAttendanceFilterChange = (status: string) => {
     setAttendanceFilter(status.toLowerCase() === 'all' ? null : status.toLowerCase());
   };
@@ -290,25 +286,25 @@ const EventData = () => {
 
 
 
-  // Update Confirmation Status
-  const updateConfirmation = async (selectedConfirmationStatus: string, guestId: number) => {
-    console.log('Updating confirmation:', { guestId, newStatus: selectedConfirmationStatus });
+  // Update Attendance Status (Kehadiran)
+  const updateAttendance = async (selectedAttendanceStatus: string, guestId: number) => {
+    console.log('Updating attendance:', { guestId, newStatus: selectedAttendanceStatus });
 
     // Optimistic Update: Update UI immediately
     setFilteredGuests(prev => {
       const updated = prev.map(g =>
-        g.id === guestId ? { ...g, confirmation: selectedConfirmationStatus } : g
+        g.id === guestId ? { ...g, attendance: selectedAttendanceStatus } : g
       );
       console.log('Updated filteredGuests:', updated.find(g => g.id === guestId));
       return updated;
     });
 
     try {
-      await updateGuestConfirmation(selectedConfirmationStatus, guestId.toString());
-      await updateGuestConfirmationBy(email, guestId.toString());
+      await updateGuestAttendance(selectedAttendanceStatus, guestId.toString());
+      await updateGuestAttendanceBy(email, guestId.toString());
       // Success - optimistic update already applied, no need to refresh anything
     } catch (error) {
-      console.error('Error updating status:', error);
+      console.error('Error updating attendance:', error);
       // If error, refresh data to revert changes
       if (storedEventId) await loadGuests(Number(storedEventId));
     }
@@ -937,30 +933,16 @@ const EventData = () => {
                   <ChevronDownIcon className="h-5 w-5 ml-2" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="max-h-48 overflow-y-auto">
-                  {['All', 'Hadir', 'Mewakili', 'Belum Konfirmasi', 'Tidak Hadir'].map(status => (
+                  {['Semua', 'Hadir', 'Mewakili', 'Tidak Hadir'].map(status => (
                     <DropdownMenuItem key={status} onClick={() => {
                       const mapping: { [key: string]: string } = {
-                        'All': 'All',
-                        'Hadir': 'Confirmed',
+                        'Semua': 'All',
+                        'Hadir': 'Attended',
                         'Mewakili': 'Represented',
-                        'Belum Konfirmasi': 'To Be Confirmed',
-                        'Tidak Hadir': 'Cancelled'
+                        'Tidak Hadir': 'Did Not Attend'
                       };
-                      handleConfirmationFilterChange(mapping[status] || status);
+                      handleAttendanceFilterChange(mapping[status] || status);
                     }}>
-                      {status}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center justify-between p-2 bg-[#EDEDED] rounded border-[1px] border-[#9A9A9A] w-auto">
-                  <span>Filter by Attendance</span>
-                  <ChevronDownIcon className="h-5 w-5 ml-2" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="max-h-48 overflow-y-auto">
-                  {['All', 'Attended', 'Represented', 'Did Not Attend'].map(status => (
-                    <DropdownMenuItem key={status} onClick={() => handleAttendanceFilterChange(status)}>
                       {status}
                     </DropdownMenuItem>
                   ))}
@@ -989,7 +971,7 @@ const EventData = () => {
             guests={filteredGuests}
             selectedGuests={selectedGuests}
             selectAll={selectAll}
-            updateConfirmation={updateConfirmation}
+            updateAttendance={updateAttendance}
             updateMerchandise={updateMerchandise}
             getIconForSorting={getIconForSorting}
             handleSort={handleSort}

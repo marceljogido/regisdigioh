@@ -34,10 +34,9 @@ const UpdateConfirmationDialog: React.FC<UpdateConfirmationDialogProps> = ({ ope
                     fullWidth
                     style={{ marginTop: '10px' }}
                 >
-                    <MenuItem value="confirmed">Hadir</MenuItem>
-                    <MenuItem value="to be confirmed">Belum Konfirmasi</MenuItem>
+                    <MenuItem value="attended">Hadir</MenuItem>
                     <MenuItem value="represented">Mewakili</MenuItem>
-                    <MenuItem value="cancelled">Tidak Hadir</MenuItem>
+                    <MenuItem value="did not attend">Belum Hadir</MenuItem>
                 </Select>
             </DialogContent>
             <DialogActions>

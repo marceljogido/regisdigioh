@@ -28,7 +28,7 @@ interface Guest {
 
 interface Props {
     guests: Guest[];
-    updateConfirmation: (selectedConfirmationStatus: string, guestId: number) => void;
+    updateAttendance: (selectedAttendanceStatus: string, guestId: number) => void;
     updateMerchandise: (selectedMerchandiseStatus: string, guestId: number) => void;
     getIconForSorting: (key: string) => React.ReactNode;
     handleSort: (key: string) => void;
@@ -40,7 +40,7 @@ interface Props {
 
 const EventDataTable: React.FC<Props> = ({
     guests,
-    updateConfirmation,
+    updateAttendance,
     updateMerchandise,
     getIconForSorting,
     handleSort,
@@ -69,21 +69,17 @@ const EventDataTable: React.FC<Props> = ({
     }, []);
 
     const capitalizeFirstLetter = (word: string) => {
-        if (word.toLowerCase() === 'confirmed') return 'Hadir';
-        if (word.toLowerCase() === 'to be confirmed') return 'Belum Konfirmasi';
+        if (word.toLowerCase() === 'attended') return 'Hadir';
         if (word.toLowerCase() === 'represented') return 'Mewakili';
-        if (word.toLowerCase() === 'cancelled') return 'Tidak Hadir';
-        if (word.toLowerCase() === 'attended') return 'Hadir'; // Backup mapping
-        if (word.toLowerCase() === 'did not attend') return 'Tidak Hadir'; // Backup mapping
+        if (word.toLowerCase() === 'did not attend') return 'Belum Hadir';
         return word;
     };
 
-    const getConfirmationColor = (status: string) => {
+    const getAttendanceColor = (status: string) => {
         switch (status.toLowerCase()) {
-            case 'confirmed': return '#25B380';
-            case 'to be confirmed': return '#FF8211';
+            case 'attended': return '#25B380';
             case 'represented': return '#2CBAE9';
-            case 'cancelled': return '#C80000';
+            case 'did not attend': return '#FF8211';
             default: return '#000000';
         }
     };
@@ -133,10 +129,10 @@ const EventDataTable: React.FC<Props> = ({
     const handleConfirmationUpdate = async (newStatus: string) => {
         if (selectedGuest) {
             try {
-                await updateConfirmation(newStatus, selectedGuest.id);
-                toast.success('Confirmation status updated successfully!');
+                await updateAttendance(newStatus, selectedGuest.id);
+                toast.success('Status kehadiran berhasil diupdate!');
             } catch (error) {
-                toast.error('Failed to update confirmation status!');
+                toast.error('Gagal mengupdate status kehadiran!');
             }
         }
     };
@@ -236,9 +232,9 @@ const EventDataTable: React.FC<Props> = ({
                                     {guest.attributes ? (guest.attributes['No HP CP'] || guest.attributes['no hp cp'] || '-') : '-'}
                                 </TableCell>
                                 <TableCell className="text-center">
-                                    <div className="flex items-center justify-center font-bold" style={{ color: getConfirmationColor(guest.confirmation) }}>
+                                    <div className="flex items-center justify-center font-bold" style={{ color: getAttendanceColor(guest.attendance) }}>
                                         <PencilSquareIcon className="h-5 w-5 text-gray-500 mr-2 cursor-pointer" onClick={() => handleConfirmationClick(guest)} />
-                                        {capitalizeFirstLetter(guest.confirmation)}
+                                        {capitalizeFirstLetter(guest.attendance)}
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-center font-bold" style={{ color: getMerchandiseColor(guest.merchandise) }}>
@@ -262,7 +258,7 @@ const EventDataTable: React.FC<Props> = ({
             {/* Dialog-dialog tetap sama di bawah */}
             {
                 selectedGuest && (
-                    <UpdateConfirmationDialog open={confirmationDialogOpen} onClose={handleConfirmationDialogClose} currentStatus={selectedGuest.confirmation} onUpdate={handleConfirmationUpdate} />
+                    <UpdateConfirmationDialog open={confirmationDialogOpen} onClose={handleConfirmationDialogClose} currentStatus={selectedGuest.attendance} onUpdate={handleConfirmationUpdate} />
                 )
             }
             {
