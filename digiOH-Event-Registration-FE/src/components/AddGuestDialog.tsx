@@ -148,20 +148,20 @@ const AddGuestDialog = ({ isOpen, onClose, onSave, guestAttributes, eventId }: A
     } else {
       try {
         // Prepare structured data for API
+        // Default values for hidden fields
         const guestData: Record<string, any> = {
           username: newGuest['username'],
-          email: newGuest['email'],
-          phoneNum: newGuest['phoneNum'],
+          email: '', // Hidden field - empty
+          phoneNum: '', // Hidden field - empty
           instansi: newGuest['instansi'],
-          attributes: {}
-        };
-
-        // Collect dynamic attributes (like Jabatan)
-        guestAttributes.forEach(attr => {
-          if (newGuest[attr]) {
-            guestData.attributes[attr] = newGuest[attr];
+          attributes: {
+            'Jabatan': newGuest['Jabatan'] || '',
+            'Jumlah Orang': newGuest['Jumlah Orang'] || '1',
+            'Keterangan': '', // Hidden - empty
+            'CP': '', // Hidden - empty
+            'No HP CP': '' // Hidden - empty
           }
-        });
+        };
 
         onSave(guestData);
         setNewGuest({});
@@ -255,33 +255,26 @@ const AddGuestDialog = ({ isOpen, onClose, onSave, guestAttributes, eventId }: A
             )
           ) : (
             <>
+              {/* Nama - Required */}
               <TextField
                 key="username"
-                label="Name"
+                label="Nama"
                 value={newGuest["username"] || ''}
                 onChange={(e) => setNewGuest({ ...newGuest, ["username"]: e.target.value })}
                 fullWidth
                 margin="normal"
                 required
               />
+              {/* Jabatan - NOT Required */}
               <TextField
-                key="email"
-                label="Email"
-                value={newGuest["email"] || ''}
-                onChange={(e) => setNewGuest({ ...newGuest, ["email"]: e.target.value })}
+                key="Jabatan"
+                label="Jabatan"
+                value={newGuest["Jabatan"] || ''}
+                onChange={(e) => setNewGuest({ ...newGuest, ["Jabatan"]: e.target.value })}
                 fullWidth
                 margin="normal"
-                required
               />
-              <TextField
-                key="phoneNum"
-                label="Phone Number"
-                value={newGuest["phoneNum"] || ''}
-                onChange={(e) => setNewGuest({ ...newGuest, ["phoneNum"]: e.target.value })}
-                fullWidth
-                margin="normal"
-                required
-              />
+              {/* Instansi - Required */}
               <TextField
                 key="instansi"
                 label="Instansi"
@@ -291,17 +284,18 @@ const AddGuestDialog = ({ isOpen, onClose, onSave, guestAttributes, eventId }: A
                 margin="normal"
                 required
               />
-              {guestAttributes.map((key) => (
-                <TextField
-                  key={key}
-                  label={key}
-                  value={newGuest[key] || ''}
-                  onChange={(e) => setNewGuest({ ...newGuest, [key]: e.target.value })}
-                  fullWidth
-                  margin="normal"
-                  required
-                />
-              ))}
+              {/* Jumlah Orang - Required */}
+              <TextField
+                key="Jumlah Orang"
+                label="Jumlah Orang"
+                type="number"
+                value={newGuest["Jumlah Orang"] || '1'}
+                onChange={(e) => setNewGuest({ ...newGuest, ["Jumlah Orang"]: e.target.value })}
+                fullWidth
+                margin="normal"
+                required
+                inputProps={{ min: 1 }}
+              />
               <Button
                 onClick={handleImport}
                 color="primary"
