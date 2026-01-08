@@ -359,8 +359,6 @@ exports.getGuestByUniqueCode = async (req, res) => {
           <!-- Text Section -->
           <div style="text-align: center;">
             <h1 class="nama">${guest.username}</h1>
-            <p class="jabatan">${attrs['Jabatan'] || attrs['jabatan'] || '-'}</p>
-            <p class="instansi">${guest.instansi || '-'}</p>
           </div>
 
         </div>
