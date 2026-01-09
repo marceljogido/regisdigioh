@@ -235,7 +235,7 @@ exports.getGuestByUniqueCode = async (req, res) => {
             /* Keep original layout for rendering source */
             width: 1080px;
             height: 1920px;
-            background: url('${process.env.BASE_URL || 'http://localhost:5000'}/api/public/background-qr.jpg') no-repeat center center;
+            background: url('${process.env.BASE_URL || 'http://localhost:5000'}/api/public/${guest.registration_type === 'ots' ? 'background-qr-merah.jpg' : 'background-qr.jpg'}') no-repeat center center;
             background-size: cover;
             position: absolute;
             left: -9999px; /* Hide off-screen but keep renderable */

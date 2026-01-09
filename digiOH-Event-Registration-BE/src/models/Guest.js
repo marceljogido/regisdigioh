@@ -74,6 +74,12 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true,
         },
+        registration_type: {
+            type: DataTypes.ENUM,
+            values: ['rsvp', 'ots'],
+            allowNull: false,
+            defaultValue: 'rsvp' // Existing data defaults to rsvp (old background)
+        },
     });
 
     return Guest;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { read, utils } from 'xlsx';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { Input } from "./ui/input";
 import { toast } from 'react-toastify';
 
@@ -16,7 +16,7 @@ interface AddGuestDialogProps {
 }
 
 const AddGuestDialog = ({ isOpen, onClose, onSave, guestAttributes, eventId }: AddGuestDialogProps) => {
-  const [newGuest, setNewGuest] = useState<Record<string, any>>({});
+  const [newGuest, setNewGuest] = useState<Record<string, any>>({ registration_type: 'ots' });
   const [importMode, setImportMode] = useState<boolean>(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState<boolean>(false);
@@ -121,6 +121,9 @@ const AddGuestDialog = ({ isOpen, onClose, onSave, guestAttributes, eventId }: A
               // Combine attributes into guestData for the API
               guestData.attributes = attributesData;
 
+              // Import defaults to RSVP registration type
+              guestData.registration_type = 'rsvp';
+
               // Send directly to API to avoid closing modal
               await addSingleGuest(guestData, eventId);
 
@@ -154,6 +157,7 @@ const AddGuestDialog = ({ isOpen, onClose, onSave, guestAttributes, eventId }: A
           email: '', // Hidden field - empty
           phoneNum: '', // Hidden field - empty
           instansi: newGuest['instansi'],
+          registration_type: newGuest['registration_type'] || 'ots',
           attributes: {
             'Jabatan': newGuest['Jabatan'] || '',
             'Jumlah Orang': newGuest['Jumlah Orang'] || '1',
@@ -255,6 +259,19 @@ const AddGuestDialog = ({ isOpen, onClose, onSave, guestAttributes, eventId }: A
             )
           ) : (
             <>
+              {/* Tipe Registrasi - Dropdown */}
+              <FormControl fullWidth margin="normal">
+                <InputLabel id="registration-type-label">Tipe Registrasi</InputLabel>
+                <Select
+                  labelId="registration-type-label"
+                  value={newGuest['registration_type'] || 'ots'}
+                  label="Tipe Registrasi"
+                  onChange={(e) => setNewGuest({ ...newGuest, registration_type: e.target.value })}
+                >
+                  <MenuItem value="ots">OTS (On The Spot)</MenuItem>
+                  <MenuItem value="rsvp">RSVP</MenuItem>
+                </Select>
+              </FormControl>
               {/* Nama - Required */}
               <TextField
                 key="username"
